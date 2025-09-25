@@ -22,3 +22,9 @@ python eval.py
 We use bvh-distance-queries library [repo](https://github.com/YuliangXiu/bvh-distance-queries?tab=readme-ov-file) to calculate the distance between two objects. If the bvh library fails to install in dockerfile, you can install it manually by "cd /antfields/bvh-distance-queries && pip install -e .".
 Occupancy map is modified from [repo](https://github.com/richardos/occupancy-grid-a-star) to fit the igibson env.
 Data sampling and preprocessing is modified from [repo](https://github.com/facebookresearch/iSDF)
+
+## License
+
+This project is licensed under the Purdue University Non-Commercial Open Source Software License.  
+See the [LICENSE](./LICENSE.md) file for details.  
+For commercial use rights, please contact the Purdue Research Foundation Office of Technology Commercialization (otcip@prf.org).

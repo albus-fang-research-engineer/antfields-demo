@@ -1,3 +1,11 @@
+# SYSTEMS AND METHODS FOR PHYSICS-INFORMED NEURAL NETWORKS FOR ROBOT MAPPING
+# Copyright © 2025 Purdue University.
+# Developed by Yuchen Liu, Ruiqi Ni and CORAL Lab.
+# Purdue Research Foundation Reference Number XXXX.
+#
+# Licensed under the Non-Commercial Open Source Software License.
+# You may not use this file except in compliance with the License.
+# A copy of the License is included in the root of this repository.
 #! this file read from depth npy files and pose npy files, and create a point cloud in trimesh
 
 import numpy as np

@@ -1,8 +1,8 @@
-**\[insert software name]** Non-Commercial Open Source Software License 
+SYSTEMS AND METHODS FOR PHYSICS-INFORMED NEURAL NETWORKS FOR ROBOT MAPPING Non-Commercial Open Source Software License 
 
 
 
-Copyright © **\[insert year(s)]** Purdue University. Developed by **\[insert author/contributor name(s)]**. Purdue Research Foundation Reference Number **\[insert]** 
+Copyright © 2025 Purdue University. Developed by Yuchen Liu & Ruiqi Ni & CoRAL Lab. Purdue Research Foundation Reference Number 70611-02 
 
 
 

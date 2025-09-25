@@ -2,7 +2,7 @@ SYSTEMS AND METHODS FOR PHYSICS-INFORMED NEURAL NETWORKS FOR ROBOT MAPPING Non-C
 
 
 
-Copyright © 2025 Purdue University. Developed by Yuchen Liu & Ruiqi Ni & CoRAL Lab. Purdue Research Foundation Reference Number 70611-02 
+Copyright © 2025 Purdue University. Developed by Yuchen Liu & Ruiqi Ni & Ahmed H. Qureshi and CoRAL Lab. Purdue Research Foundation Reference Number 70611-02 
 
 
 

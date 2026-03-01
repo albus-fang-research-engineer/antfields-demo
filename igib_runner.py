@@ -12,6 +12,79 @@ import torch
 from dataprocessing import isdf_sample
 from test_igib import viz
 import matplotlib.pyplot as plt
+from load_njsdf.inference import (
+    load_sdf_2d_model,
+    risk_distance_cvar
+)
+
+def voxel_downsample(pc, voxel_size):
+    coords = torch.floor(pc / voxel_size)
+    unique, idx = torch.unique(coords, dim=0, return_inverse=False, return_counts=False, sorted=False, return_index=True)
+    return pc[idx]
+
+def knn_local(query_pts, surf_pc, K):
+    dists = torch.cdist(query_pts, surf_pc)
+    knn_dists, knn_idx = torch.topk(dists, K, largest=False)
+    return surf_pc[knn_idx]
+
+def radial_downsample(points, center, max_pts=3000, near_radius=1.0):
+    """
+    points : (N,3) torch
+    center : (3,)  torch
+
+    Keeps:
+    - all near points
+    - random far points
+
+    returns: (M,3)
+    """
+    d = torch.norm(points - center, dim=1)
+
+    near_mask = d < near_radius
+    near_pts = points[near_mask]
+
+    far_pts = points[~near_mask]
+
+    remaining = max(0, max_pts - near_pts.shape[0])
+
+    if far_pts.shape[0] > remaining:
+        idx = torch.randperm(far_pts.shape[0], device=points.device)[:remaining]
+        far_pts = far_pts[idx]
+
+    return torch.cat([near_pts, far_pts], dim=0)
+
+def batched_cvar_distance(model, query_pts, local_obs, alpha=0.3, tail=0.1):
+
+    device = model.dist_device
+
+    M, K, _ = local_obs.shape
+
+    robot_xy = query_pts[:, None, :2].expand(-1, K, -1)
+    obs_xy   = local_obs[:, :, :2]
+
+    net_input = torch.cat([robot_xy, obs_xy], dim=-1)
+    net_input = net_input.reshape(M*K, 4)
+
+    from load_njsdf.inference import predict_mu_var
+
+    mu, var = predict_mu_var(model.dist_model, net_input)
+
+    sigma = torch.sqrt(torch.clamp(var, min=1e-12))
+
+    normal = torch.distributions.Normal(
+        torch.tensor(0.0, device=device),
+        torch.tensor(1.0, device=device)
+    )
+
+    z = normal.icdf(torch.tensor(alpha, device=device))
+
+    var_i = mu + z * sigma
+    var_i = var_i.view(M, K)
+
+    k = max(1, int(np.ceil(tail * K)))
+    worst = torch.topk(var_i, k, largest=False).values
+
+    return worst.mean(dim=1)
 
 
 def interpolate_np_arrays(start_array, end_array, num_steps):
@@ -212,6 +285,86 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
 
     points = torch.cat((x0, x1), dim=1)
     speeds = torch.cat((y0, y1.unsqueeze(1)), dim=1)
+    bounds = torch.cat((bounds[valid_indices][valid_indices1], dists1.unsqueeze(1)), dim=1)
+
+    points /= scale_factor
+    bounds /= scale_factor
+    #if False and is_gt_speed: #ground truth
+    #    bounds = self.get_gt_bounds("datasets/igib-seqs/Beechwood_0_int_scene_mesh.obj", pc)
+    # print(bounds)
+    #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
+    
+    return points[0:5000], speeds[0:5000], bounds[0:5000]
+
+def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, num=10000, scale_factor=1):
+    sample_pts = sample_points_from_pos(model, position, scale_factor)
+    #points, bounds = get_bounds_from_pts(sample_pts)
+    #'''
+    points, bounds = get_bounds_from_pts(sample_pts)
+
+    points = points.view(-1, 3)
+    bounds = bounds.view(-1, 1)
+    #'''
+
+    #speeds = torch.clip(bounds, minimum, maximum)/maximum
+
+    minimum *= scale_factor
+    maximum *= scale_factor
+
+    valid_indices = torch.where((bounds < maximum) & (bounds > minimum))[0] 
+
+    x0 = points[valid_indices]
+    # y0 = torch.clip(bounds[valid_indices], minimum, maximum)/maximum
+
+    dP = torch.rand((x0.shape[0],3),dtype=torch.float32, device='cuda')-0.5
+    rL = (torch.rand((x0.shape[0],1),dtype=torch.float32, device='cuda'))*1.5
+    x1 = x0 + torch.nn.functional.normalize(dP,dim=1)*rL
+
+    position = torch.tensor(position).cuda()
+
+    ray0 = x1 - position*scale_factor
+    ray1 = sample_pts["surf_pc"] - position*scale_factor
+    norm0 = ray0.norm(dim=-1)
+    norm1 = ray1.norm(dim=-1)
+    dot = (ray0/norm0.unsqueeze(1))@(ray1/norm1.unsqueeze(1)).T
+    dot, closest_ixs1 = dot.max(axis=-1)
+    # print(dot)
+
+    valid_indices1 = torch.where( (norm0 < norm1[closest_ixs1])&(dot>0.995)&(norm0<2.5))[0]
+    #print(dot)
+    x0 = x0[valid_indices1]
+    x1 = x1[valid_indices1]
+    # y0 = y0[valid_indices1]
+
+#----------------------------------------------------------
+#----------------Calculate X1 distance---------------------
+#----------------------------------------------------------
+    # diff1 = x1.unsqueeze(1) - sample_pts["surf_pc"] 
+    # dists1 = diff1.norm(dim=-1)
+    # dists1, closest_ixs1 = dists1.min(axis=-1)
+
+    surf_pc = sample_pts["surf_pc"]
+    # --- downsample once ---
+    surf_pc = voxel_downsample(surf_pc, voxel_size=0.02)
+    # surf_pc = radial_downsample(surf_pc, position * scale_factor, num_bins=180, max_per_bin=3)
+    # -------- neural distance for x0 (same as x1) --------
+    local_obs_x0 = knn_local(x0, surf_pc, K=32)
+    dists0 = batched_cvar_distance(model, x0, local_obs_x0)
+    y0 = torch.clip(dists0, minimum, maximum) / maximum
+    # --- KNN for all query points at once ---
+    local_obs = knn_local(x1, surf_pc, K=32)
+    # --- neural CVaR distance ---
+    dists1 = batched_cvar_distance(model, x1, local_obs)
+#----------------------------------------------------------
+#----------------------------------------------------------
+#----------------------------------------------------------
+    # dists1 -= 0.02
+    y1 = torch.clip(dists1, minimum, maximum)/maximum
+
+    # print(closest_ixs1)
+
+    points = torch.cat((x0, x1), dim=1)
+    speeds = torch.cat((y0.unsqueeze(1), y1.unsqueeze(1)), dim=1)
     bounds = torch.cat((bounds[valid_indices][valid_indices1], dists1.unsqueeze(1)), dim=1)
 
     points /= scale_factor

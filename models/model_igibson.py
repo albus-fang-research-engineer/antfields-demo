@@ -34,7 +34,7 @@ import gridmap
 from dataprocessing import isdf_sample, data_pc_validate, transform 
 import json 
 import cv2 
-
+from load_njsdf.inference import load_sdf_2d_model
 torch.backends.cudnn.benchmark = True
 
 EXPLORATION = 1 
@@ -319,7 +319,11 @@ class Model():
         self.free_pc = []
 
         self.init_network()
-        
+        self.dist_model, self.dist_device = load_sdf_2d_model()
+
+        # keep everything on the same device as the PINN
+        self.dist_model = self.dist_model.to(self.Params['Device'])
+        self.dist_device = self.Params['Device']
 
     
     def gradient(self, y, x, create_graph=True):                                                               
@@ -967,7 +971,19 @@ class Model():
             camera_y = position[1] + rotated_triangle_marker[:, 1]
             ax.fill(camera_x, camera_y, 'b')
 
-    
+        src_np = src if isinstance(src, np.ndarray) else src.cpu().numpy()
+
+        robot_circle = plt.Circle(
+            (src_np[0], src_np[1]),
+            0.105,
+            fill=False,
+            edgecolor='red',
+            linewidth=2,
+            zorder=10
+        )
+        ax.add_patch(robot_circle)
+
+        ax.scatter(src_np[0], src_np[1], color='red', s=20, zorder=11)
         #! plot trajectory
         if traj_list is not None:
             ax.plot(traj_list[:, 0], traj_list[:, 1], color='pink', marker = 'o', markersize=0.8, linestyle='-')

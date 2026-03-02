@@ -975,7 +975,7 @@ class Model():
 
         robot_circle = plt.Circle(
             (src_np[0], src_np[1]),
-            0.105,
+            0.105/10,
             fill=False,
             edgecolor='red',
             linewidth=2,

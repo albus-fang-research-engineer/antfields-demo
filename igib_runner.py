@@ -337,7 +337,7 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
     # y0 = y0[valid_indices1]
 
 #----------------------------------------------------------
-#----------------Calculate X1 distance---------------------
+#---------------- Calculate X1 distance -------------------
 #----------------------------------------------------------
     # diff1 = x1.unsqueeze(1) - sample_pts["surf_pc"] 
     # dists1 = diff1.norm(dim=-1)
@@ -346,7 +346,12 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
     surf_pc = sample_pts["surf_pc"]
     # --- downsample once ---
     surf_pc = voxel_downsample(surf_pc, voxel_size=0.02)
-    # surf_pc = radial_downsample(surf_pc, position * scale_factor, num_bins=180, max_per_bin=3)
+    # surf_pc = radial_downsample(
+    #     surf_pc,
+    #     position * scale_factor,
+    #     max_pts=3000,
+    #     near_radius=1.0 * scale_factor
+    # )
     # -------- neural distance for x0 (same as x1) --------
     local_obs_x0 = knn_local(x0, surf_pc, K=32)
     dists0 = batched_cvar_distance(model, x0, local_obs_x0)

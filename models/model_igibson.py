@@ -36,7 +36,8 @@ import json
 import cv2 
 from load_njsdf.inference import load_sdf_2d_model
 torch.backends.cudnn.benchmark = True
-
+from chance_constrained_planning.rollout import rollout_optimized
+from chance_constrained_planning.optimizer import solve_step
 EXPLORATION = 1 
 READ_FROM_COOKED_DATA = 2
 
@@ -561,6 +562,16 @@ class Model():
                 print("nbv", nbv)
                 print("curview", self.cur_view)
                 traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy())
+                start = traj[0]
+                path = traj[1:]
+                optimized_traj = rollout_optimized(
+                    start,
+                    path,
+                    obstacle_points,
+                    solve_step,
+                    self.dist_model,
+                    self.Params['Device']
+                )
                 if self.mode == EXPLORATION:
                     traj = traj_list[:traj_ind+1]
                 if self.trajectory is None:
@@ -595,7 +606,8 @@ class Model():
                 break
             
             if self.mode != READ_FROM_COOKED_DATA:
-                self.cur_view = nbv
+                # self.cur_view = nbv
+                self.cur_view = optimized_traj[-1]
 
         if True:
             print("Exploration is done. Finetuning...")

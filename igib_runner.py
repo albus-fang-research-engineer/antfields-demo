@@ -53,6 +53,33 @@ def radial_downsample(points, center, max_pts=3000, near_radius=1.0):
 
     return torch.cat([near_pts, far_pts], dim=0)
 
+def batched_min_mean_distance(model, query_pts, local_obs):
+
+    device = model.dist_device
+
+    M, K, _ = local_obs.shape
+
+    # Expand robot positions to match obstacle batch
+    robot_xy = query_pts[:, None, :2].expand(-1, K, -1)
+    obs_xy   = local_obs[:, :, :2]
+
+    # Network input: (M*K, 4)
+    net_input = torch.cat([robot_xy, obs_xy], dim=-1)
+    net_input = net_input.reshape(M*K, 4)
+
+    from load_njsdf.inference import predict_mu_var
+
+    # We only care about mu
+    mu, _ = predict_mu_var(model.dist_model, net_input)
+
+    # Reshape back to (M, K)
+    mu = mu.view(M, K)
+
+    # Take minimum mean distance per query point
+    min_mu = mu.min(dim=1).values
+
+    return min_mu
+
 def batched_cvar_distance(model, query_pts, local_obs, alpha=0.3, tail=0.1):
 
     device = model.dist_device
@@ -343,15 +370,15 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
     # dists1 = diff1.norm(dim=-1)
     # dists1, closest_ixs1 = dists1.min(axis=-1)
 
-    surf_pc = sample_pts["surf_pc"]
+    surf_pc = sample_pts["surf_pc"] # 10x environment scale
     # --- downsample once ---
     surf_pc = voxel_downsample(surf_pc, voxel_size=0.02)
-    # surf_pc = radial_downsample(
-    #     surf_pc,
-    #     position * scale_factor,
-    #     max_pts=3000,
-    #     near_radius=1.0 * scale_factor
-    # )
+    surf_pc = radial_downsample(
+        surf_pc,
+        position * scale_factor,
+        max_pts=3000,
+        near_radius= maximum
+    )
     # -------- neural distance for x0 (same as x1) --------
     local_obs_x0 = knn_local(x0, surf_pc, K=32)
     dists0 = batched_cvar_distance(model, x0, local_obs_x0)

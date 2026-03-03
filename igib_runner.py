@@ -316,6 +316,7 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
 
     points /= scale_factor
     bounds /= scale_factor
+    obstacle_points = sample_pts["surf_pc"] / scale_factor
     #if False and is_gt_speed: #ground truth
     #    bounds = self.get_gt_bounds("datasets/igib-seqs/Beechwood_0_int_scene_mesh.obj", pc)
     # print(bounds)
@@ -377,16 +378,18 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
         surf_pc,
         position * scale_factor,
         max_pts=3000,
-        near_radius= maximum
+        near_radius= maximum  * 1.5
     )
     # -------- neural distance for x0 (same as x1) --------
     local_obs_x0 = knn_local(x0, surf_pc, K=32)
-    dists0 = batched_cvar_distance(model, x0, local_obs_x0)
+    # dists0 = batched_cvar_distance(model, x0, local_obs_x0)
+    dists0 = batched_min_mean_distance(model, x0 / scale_factor, local_obs_x0 / scale_factor) * scale_factor
     y0 = torch.clip(dists0, minimum, maximum) / maximum
     # --- KNN for all query points at once ---
     local_obs = knn_local(x1, surf_pc, K=32)
     # --- neural CVaR distance ---
-    dists1 = batched_cvar_distance(model, x1, local_obs)
+    # dists1 = batched_cvar_distance(model, x1, local_obs)
+    dists1 = batched_min_mean_distance(model, x1 / scale_factor, local_obs / scale_factor) * scale_factor
 #----------------------------------------------------------
 #----------------------------------------------------------
 #----------------------------------------------------------
@@ -401,12 +404,13 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
 
     points /= scale_factor
     bounds /= scale_factor
+    obstacle_points = surf_pc / scale_factor
     #if False and is_gt_speed: #ground truth
     #    bounds = self.get_gt_bounds("datasets/igib-seqs/Beechwood_0_int_scene_mesh.obj", pc)
     # print(bounds)
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
-    return points[0:5000], speeds[0:5000], bounds[0:5000]
+    return points[0:5000], speeds[0:5000], bounds[0:5000], obstacle_points
 
 def sample_points_from_pos(model, position, scale_factor=1):
     """

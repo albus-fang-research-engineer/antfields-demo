@@ -504,7 +504,7 @@ class Model():
                     for height in heights:
                         curviewpoint = self.cur_view.clone()
                         curviewpoint[2] = height
-                        points, speeds, bounds = igib_runner.sample_points_and_speeds_from_pos_new(self, curviewpoint.cpu().numpy(), self.minimum, self.maximum, num=10000, scale_factor=self.scale_factor)
+                        points, speeds, bounds, obstacle_points = igib_runner.sample_points_and_speeds_from_pos_neural(self, curviewpoint.cpu().numpy(), self.minimum, self.maximum, num=10000, scale_factor=self.scale_factor)
                         curpoints.append(points)
                         curspeeds.append(speeds)
                         curbounds.append(bounds)          
@@ -553,7 +553,9 @@ class Model():
                     if coverage > 0.543:
                         # pass
                         break
-                    traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0)
+                    traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
+                    # traj_list is the full gradient-descent trajectory from current position to the selected unexplored block. 
+                    # traj_ind is the index along the trajectory where accumulated path length ≈ 0.05 meters.
                     nbv = Tensor(traj_list[traj_ind])
 
 
@@ -561,7 +563,7 @@ class Model():
                 # print("self.dataset.Ts[0][:3, 3]/self.scale_factor", self.dataset.Ts[0][:3, 3]/self.scale_factor)
                 print("nbv", nbv)
                 print("curview", self.cur_view)
-                traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy())
+                traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy()) # small incremental motion
                 start = traj[0]
                 path = traj[1:]
                 optimized_traj = rollout_optimized(
@@ -575,7 +577,7 @@ class Model():
                 if self.mode == EXPLORATION:
                     traj = traj_list[:traj_ind+1]
                 if self.trajectory is None:
-                    self.trajectory = traj
+                    self.trajectory = traj #stores the entire path history over time.
                 else:
                     self.trajectory = np.concatenate([self.trajectory, traj], axis=0) 
                 print("traj is:", traj)

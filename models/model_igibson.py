@@ -300,6 +300,8 @@ class Model():
         self.epoch = 0
         self.frame_idx = 0
         self.trajectory = None
+        self.all_optimized_trajectories = None
+        self.all_optimized_segments = None
         self.prev_state_queue = []
         self.prev_optimizer_queue = []
         self.timer = []
@@ -563,10 +565,14 @@ class Model():
                 # print("self.dataset.Ts[0][:3, 3]/self.scale_factor", self.dataset.Ts[0][:3, 3]/self.scale_factor)
                 print("nbv", nbv)
                 print("curview", self.cur_view)
-                traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy()) # small incremental motion
-                start = traj[0]
-                path = traj[1:]
-                optimized_traj = rollout_optimized(
+                # traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy()) # small incremental motion
+               
+
+                # Optimize the full trajectory
+                start = traj_list[0]
+                path = traj_list[1:]
+
+                optimized_traj_list = rollout_optimized(
                     start,
                     path,
                     obstacle_points,
@@ -574,6 +580,19 @@ class Model():
                     self.dist_model,
                     self.Params['Device']
                 )
+
+                traj_list = np.array(traj_list)
+                if self.mode == EXPLORATION:
+                    optimized_segment = optimized_traj_list[:traj_ind+1]
+                # Now NBV is taken from the optimized trajectory
+                nbv = Tensor(traj_list[traj_ind])
+                if self.all_optimized_trajectories is None:
+                    self.all_optimized_trajectories = optimized_traj_list
+                if self.all_optimized_segments is None:
+                    self.all_optimized_segments = optimized_segment
+                else:
+                    self.all_optimized_segments = np.concatenate([self.all_optimized_segments, optimized_segment],axis=0)
+
                 if self.mode == EXPLORATION:
                     traj = traj_list[:traj_ind+1]
                 if self.trajectory is None:
@@ -660,7 +679,7 @@ class Model():
             else:
                 self.all_framedata = torch.cat((self.all_framedata, frame_data.unsqueeze(0)), dim=0)
             print(self.all_framedata.shape)
-            np.save(f"{self.folder}/explored_data.npy", self.all_framedata.clone().cpu().numpy())
+            np.save(f"{self.folder}/explored_data.npy", self.all_framedata.detach().cpu().numpy())
 
 
         #! mix data so that the start and end points are from different frames

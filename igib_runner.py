@@ -19,7 +19,7 @@ from load_njsdf.inference import (
 
 def voxel_downsample(pc, voxel_size):
     coords = torch.floor(pc / voxel_size)
-    unique, idx = torch.unique(coords, dim=0, return_inverse=False, return_counts=False, sorted=False, return_index=True)
+    unique, idx = torch.unique(coords, dim=0, return_inverse=True, return_counts=False, sorted=False)
     return pc[idx]
 
 def knn_local(query_pts, surf_pc, K):

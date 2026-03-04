@@ -40,7 +40,104 @@ from chance_constrained_planning.rollout import rollout_optimized
 from chance_constrained_planning.optimizer import solve_step
 EXPLORATION = 1 
 READ_FROM_COOKED_DATA = 2
+def find_deviation_region(traj, opt, threshold=0.0005):
+    if traj is None or opt is None:
+        return None
 
+    traj = np.asarray(traj)
+    opt  = np.asarray(opt)
+
+    n = min(len(traj), len(opt))
+
+    diff = np.linalg.norm(traj[:n, :2] - opt[:n, :2], axis=1)
+
+    idx = np.where(diff > threshold)[0]
+
+    if len(idx) == 0:
+        return None
+
+    return idx
+def compute_zoom_bounds(points, padding=0.1):
+    xmin = np.min(points[:,0]) - padding
+    xmax = np.max(points[:,0]) + padding
+    ymin = np.min(points[:,1]) - padding
+    ymax = np.max(points[:,1]) + padding
+    return xmin, xmax, ymin, ymax
+
+def plot_traj_difference(folder, epoch, traj_list, optimized_traj_list, model):
+
+    traj = np.asarray(traj_list)
+    opt  = np.asarray(optimized_traj_list)
+
+    n = min(len(traj), len(opt))
+    traj = traj[:n]
+    opt  = opt[:n]
+
+    idx = find_deviation_region(traj, opt, threshold=0.005)
+
+    if idx is None:
+        return
+
+    # create velocity field grid (same as plot())
+    limit = 1
+    xmin = [-0.5, -0.5]
+    xmax = [0.5, 0.5]
+    spacing = limit/80.0
+
+    X, Y = np.meshgrid(
+        np.arange(xmin[0], xmax[0], spacing),
+        np.arange(xmin[1], xmax[1], spacing)
+    )
+
+    Xsrc = traj[0]
+
+    XP = np.zeros((len(X.flatten()), 2*model.dim))
+    XP[:,:model.dim] = Xsrc
+    XP[:,model.dim:] = Xsrc
+
+    XP[:,model.dim+0] = X.flatten()
+    XP[:,model.dim+1] = Y.flatten()
+
+    XP = torch.tensor(XP, dtype=torch.float32).to(model.Params['Device'])
+
+    ss = model.Speed(XP)
+    V  = ss.detach().cpu().numpy().reshape(X.shape)
+
+    pts = np.vstack((traj[idx], opt[idx]))
+
+    xmin, xmax, ymin, ymax = compute_zoom_bounds(pts, padding=0.1)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    quad1 = ax.pcolormesh(X, Y, V, vmin=0, vmax=1)
+
+    ax.plot(traj[:,0], traj[:,1],
+            color='red',
+            linewidth=1,
+            label='Nominal trajectory')
+
+    ax.plot(opt[:,0], opt[:,1],
+            color='blue',
+            linewidth=1,
+            label='Optimized trajectory')
+
+    ax.scatter(traj[idx,0], traj[idx,1], color='red', s=20)
+    ax.scatter(opt[idx,0], opt[idx,1], color='blue', s=20)
+
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+
+    ax.legend()
+
+    plt.colorbar(quad1, ax=ax)
+
+    plt.title("Local Optimization Difference")
+
+    plt.savefig(folder + f"/traj_diff_zoom_{epoch}.png",
+                bbox_inches='tight')
+
+    plt.close(fig)
 class FastTensorDataLoader:
     """
     A DataLoader-like object for a set of tensors that can be much faster than
@@ -580,19 +677,40 @@ class Model():
                     self.dist_model,
                     self.Params['Device']
                 )
-
+                optimized_traj_list = [
+                    p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p)
+                    for p in optimized_traj_list
+                ]
+                plot_traj_difference(
+                    self.folder,
+                    self.epoch,
+                    traj_list,
+                    optimized_traj_list,
+                    self
+                )
                 traj_list = np.array(traj_list)
+                print("traj_list size is: ", traj_list.shape)
+                print("optimized_traj_list size is: ", len(optimized_traj_list))
                 if self.mode == EXPLORATION:
                     optimized_segment = optimized_traj_list[:traj_ind+1]
                 # Now NBV is taken from the optimized trajectory
-                nbv = Tensor(traj_list[traj_ind])
+                # nbv = Tensor(traj_list[traj_ind])
+                nbv = Tensor(optimized_traj_list[traj_ind])
                 if self.all_optimized_trajectories is None:
                     self.all_optimized_trajectories = optimized_traj_list
                 if self.all_optimized_segments is None:
                     self.all_optimized_segments = optimized_segment
                 else:
-                    self.all_optimized_segments = np.concatenate([self.all_optimized_segments, optimized_segment],axis=0)
+                    # self.all_optimized_segments = np.concatenate([self.all_optimized_segments, np.array(optimized_segment)],axis=0)
+                    optimized_segment_np = np.array([
+                        p.detach().cpu().numpy() if torch.is_tensor(p) else p
+                        for p in optimized_segment
+                    ])
 
+                    self.all_optimized_segments = np.concatenate(
+                        [self.all_optimized_segments, optimized_segment_np],
+                        axis=0
+                    )
                 if self.mode == EXPLORATION:
                     traj = traj_list[:traj_ind+1]
                 if self.trajectory is None:
@@ -611,7 +729,7 @@ class Model():
                 
                 camera_matrix = None
                 self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list)
-
+                
             elif self.mode == READ_FROM_COOKED_DATA:
                 self.plot(self.initial_view, np.array([0.3, 0.2, 0]), self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), None)
 
@@ -628,7 +746,11 @@ class Model():
             
             if self.mode != READ_FROM_COOKED_DATA:
                 # self.cur_view = nbv
-                self.cur_view = optimized_traj[-1]
+                self.cur_view = torch.as_tensor(
+                    optimized_segment[-1],
+                    dtype=torch.float32,
+                    device=self.Params['Device']
+                )
 
         if True:
             print("Exploration is done. Finetuning...")
@@ -679,7 +801,7 @@ class Model():
             else:
                 self.all_framedata = torch.cat((self.all_framedata, frame_data.unsqueeze(0)), dim=0)
             print(self.all_framedata.shape)
-            np.save(f"{self.folder}/explored_data.npy", self.all_framedata.detach().cpu().numpy())
+            np.save(f"{self.folder}/explored_data.npy", self.all_framedata.clone().cpu().numpy())
 
 
         #! mix data so that the start and end points are from different frames
@@ -1026,8 +1148,24 @@ class Model():
 
             #? plot trajectory with step size
             ax.plot(self.trajectory[:, 0], self.trajectory[:, 1], color='red', marker='o', markersize=0.8, linestyle='-', linewidth=1)
-            
 
+        # plot optimized segments (blue)
+        if self.all_optimized_segments is not None:
+            seg = self.all_optimized_segments
+            if isinstance(seg, torch.Tensor):
+                seg = seg.detach().cpu().numpy()
+            if isinstance(seg, list):
+                seg = np.array([
+                    p.detach().cpu().numpy() if torch.is_tensor(p) else p
+                    for p in seg
+                ])
+            ax.plot(seg[:, 0], seg[:, 1],
+                    color='blue',
+                    marker='o',
+                    markersize=0.8,
+                    linestyle='-',
+                    linewidth=1)    
+        
         ax.contour(X,Y,TT,np.arange(0,5,0.02), cmap='bone', linewidths=0.3)#0.25
         plt.colorbar(quad1,ax=ax, pad=0.1, label='Predicted Velocity')
         plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
@@ -1052,6 +1190,53 @@ class Model():
             plt.hist(dists, bins=100)
             plt.savefig(self.folder+"/plots_dist_"+str(epoch)+".png")
             plt.close()
+        if self.trajectory is not None and self.all_optimized_segments is not None:
+
+            traj = np.asarray(self.trajectory)
+            opt  = np.asarray(self.all_optimized_segments)
+
+            n = min(len(traj), len(opt))
+            traj = traj[:n]
+            opt  = opt[:n]
+
+            idx = find_deviation_region(traj, opt)
+
+            if idx is not None:
+
+                pts = np.vstack((traj[idx], opt[idx]))
+
+                xmin, xmax, ymin, ymax = compute_zoom_bounds(pts, padding=0.15)
+
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+
+                quad1 = ax.pcolormesh(X, Y, V, vmin=0, vmax=1)
+
+                # nominal path
+                ax.plot(traj[:,0], traj[:,1],
+                        color='red',
+                        linewidth=1,
+                        label='Nominal trajectory')
+
+                # optimized path
+                ax.plot(opt[:,0], opt[:,1],
+                        color='blue',
+                        linewidth=1,
+                        label='Optimized trajectory')
+
+                ax.set_xlim(xmin, xmax)
+                ax.set_ylim(ymin, ymax)
+
+                ax.legend()
+
+                plt.colorbar(quad1, ax=ax)
+
+                plt.title("Zoomed Optimization Deviation")
+
+                plt.savefig(self.folder + f"/zoom_{epoch}.png",
+                            bbox_inches='tight')
+
+                plt.close(fig)
 
     def predict_trajectory2(self, Xsrc, Xtar, step_size=0.03, tol=0.03):
         Xsrc = Tensor(Xsrc)

@@ -2,7 +2,9 @@ import numpy as np
 from pathlib import Path
 from load_njsdf.sdf.stochastic_robot_sdf import RobotSdfCollisionNet
 import torch
-
+from scipy.stats import norm
+DELTA = 0.2/10
+BETA = norm.ppf(1 - DELTA)
 
 def load_sdf_2d_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -26,7 +28,7 @@ def load_sdf_2d_model():
     print(f"Using device: {device}")
 
     return model, device
-RADIUS = 0.105
+# RADIUS = 0.105
 
 def predict_mu_var(model, x):
     pred = model(x)
@@ -34,7 +36,58 @@ def predict_mu_var(model, x):
     logvar = torch.clamp(logvar, -20.0, 10.0)
     return mu.squeeze(-1), torch.exp(logvar).squeeze(-1)
 
-def mu_sigma_grad_nn(robot_xy, obstacle_points, model, device):
+
+def mu_sigma_grad_nn(robot_xy, obstacle_points, model, device, K=20):
+    robot_xy = robot_xy[:2]
+    obstacle_points = obstacle_points[:, :2]
+
+    if not torch.is_tensor(robot_xy):
+        robot_xy = torch.tensor(robot_xy, dtype=torch.float32, device=device)
+    else:
+        robot_xy = robot_xy.to(device).float()
+
+    if not torch.is_tensor(obstacle_points):
+        obstacle_points = torch.tensor(obstacle_points, dtype=torch.float32, device=device)
+    else:
+        obstacle_points = obstacle_points.to(device).float()
+
+    robot_xy = robot_xy.requires_grad_(True)
+
+    N = obstacle_points.shape[0]
+    robot_rep = robot_xy.view(1, 2).expand(N, 2)
+    net_input = torch.cat([robot_rep, obstacle_points], dim=1)
+
+    from load_njsdf.inference import predict_mu_var
+    mu, var = predict_mu_var(model, net_input)
+
+    mu = mu.view(-1)                                  # (N,)
+    sigma = torch.sqrt(torch.clamp(var.view(-1), min=1e-12))  # (N,)
+
+    # ---- SELECT TOP-K USING RISK (NO GRADS NEEDED YET) ----
+    risk = mu - BETA * sigma                          # (N,)
+    K = min(K, N)
+
+    # get indices of K smallest risk values (most dangerous)
+    # torch.topk with largest=False stays on GPU (no numpy roundtrip)
+    idx = torch.topk(risk, k=K, largest=False).indices  # (K,)
+
+    # gather the K values
+    mu_k = mu[idx]               # (K,)
+    sigma_k = sigma[idx]         # (K,)
+
+    # ---- COMPUTE GRADS ONLY FOR THOSE K ----
+    grad_k = []
+    for j in range(K):
+        g = torch.autograd.grad(mu_k[j], robot_xy, retain_graph=True)[0]  # (2,)
+        grad_k.append(g)
+    grad_k = torch.stack(grad_k, dim=0)  # (K,2)
+
+    return (mu_k.detach().cpu().numpy(),
+            sigma_k.detach().cpu().numpy(),
+            grad_k.detach().cpu().numpy(),
+            obstacle_points[idx].detach().cpu().numpy())
+
+def mu_sigma_grad_nn_min(robot_xy, obstacle_points, model, device):
     """
     robot_xy: (2,)
     obstacle_points: (N,2)

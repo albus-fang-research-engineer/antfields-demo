@@ -675,7 +675,8 @@ class Model():
                     obstacle_points,
                     solve_step,
                     self.dist_model,
-                    self.Params['Device']
+                    self.Params['Device'],
+                    epoch = self.epoch
                 )
                 optimized_traj_list = [
                     p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p)

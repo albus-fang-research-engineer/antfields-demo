@@ -400,11 +400,14 @@ class OccupancyGridMap:
         Get the centers of all blocks.
         :return: the centers of all blocks
         """
+        print("block_stack length:", len(self.block_stack))
         centers = []
         for block in self.block_stack:
             x, y = self.get_block_center(block)
             if (x,y)!=(math.inf, math.inf):
                 centers.append((x,y))
+            else:
+                print("filtered_block", block)
         return numpy.array(centers)
     
     def get_coverage(self):

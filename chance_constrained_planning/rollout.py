@@ -14,13 +14,13 @@ def _to_numpy(x):
     # already numpy / list / tuple → numpy
     return np.asarray(x)
 
-def rollout_optimized(start, path, obstacle_points, solver, model, device):
+def rollout_optimized(start, path, obstacle_points, solver, model, device, epoch):
     p = _to_numpy(start).copy()
     traj = [p.copy()]
 
     for wp in path:
         wp_np = _to_numpy(wp)
-        p, mu, sigma = solver(p, wp_np, obstacle_points, model, device)
+        p, mu, sigma = solver(p, wp_np, obstacle_points, model, device, epoch)
         p = _to_numpy(p).copy()
         traj.append(p.copy())
 

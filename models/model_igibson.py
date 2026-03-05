@@ -73,7 +73,7 @@ def plot_traj_difference(folder, epoch, traj_list, optimized_traj_list, model):
     traj = traj[:n]
     opt  = opt[:n]
 
-    idx = find_deviation_region(traj, opt, threshold=0.005)
+    idx = find_deviation_region(traj, opt, threshold=0.002)
 
     if idx is None:
         return
@@ -682,13 +682,7 @@ class Model():
                     p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p)
                     for p in optimized_traj_list
                 ]
-                plot_traj_difference(
-                    self.folder,
-                    self.epoch,
-                    traj_list,
-                    optimized_traj_list,
-                    self
-                )
+                
                 traj_list = np.array(traj_list)
                 print("traj_list size is: ", traj_list.shape)
                 print("optimized_traj_list size is: ", len(optimized_traj_list))
@@ -714,6 +708,13 @@ class Model():
                     )
                 if self.mode == EXPLORATION:
                     traj = traj_list[:traj_ind+1]
+                    plot_traj_difference(
+                        self.folder,
+                        self.epoch,
+                        traj,
+                        optimized_segment,
+                        self
+                    )
                 if self.trajectory is None:
                     self.trajectory = traj #stores the entire path history over time.
                 else:

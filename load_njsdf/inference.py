@@ -3,7 +3,7 @@ from pathlib import Path
 from load_njsdf.sdf.stochastic_robot_sdf import RobotSdfCollisionNet
 import torch
 from scipy.stats import norm
-DELTA = 0.2/10
+DELTA = 1/10
 BETA = norm.ppf(1 - DELTA)
 
 def load_sdf_2d_model():

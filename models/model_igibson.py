@@ -730,7 +730,7 @@ class Model():
 
                 
                 camera_matrix = None
-                self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list)
+                self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list, obstacle_points)
                 
             elif self.mode == READ_FROM_COOKED_DATA:
                 self.plot(self.initial_view, np.array([0.3, 0.2, 0]), self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), None)
@@ -1069,7 +1069,7 @@ class Model():
         return Ypred
 
 
-    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None):
+    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None, obstacle_points=None):
         limit = 1
         xmin = [-0.5, -0.5]
         xmax = [0.5, 0.5]
@@ -1166,8 +1166,22 @@ class Model():
                     marker='o',
                     markersize=0.8,
                     linestyle='-',
-                    linewidth=1)    
-        
+                    linewidth=1)  
+              
+        if obstacle_points is not None:
+
+            if torch.is_tensor(obstacle_points):
+                obstacle_points = obstacle_points.detach().cpu().numpy()
+
+            ax.scatter(
+                obstacle_points[:,0],
+                obstacle_points[:,1],
+                color='red',
+                s=3,
+                alpha=0.6,
+                label='obstacles'
+            )
+
         ax.contour(X,Y,TT,np.arange(0,5,0.02), cmap='bone', linewidths=0.3)#0.25
         plt.colorbar(quad1,ax=ax, pad=0.1, label='Predicted Velocity')
         plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
@@ -1332,7 +1346,7 @@ class Model():
         
         curloc_tensor = torch.from_numpy(current_location).float()
 
-        traj_list = self.predict_trajectory2(curloc_tensor, curtargetloc_small_tensor, step_size=0.02)
+        traj_list = self.predict_trajectory2(curloc_tensor, curtargetloc_small_tensor, step_size=0.03)
 
         # find the largest point that is smaller than the step size
         if True:

@@ -25,15 +25,15 @@ def solve_step(p0, p_goal, obstacle_points, model, device, epoch):
     if torch.is_tensor(p_goal):
         p_goal = p_goal.detach().cpu().numpy()
     mu, sigma, grad, obs_k = mu_sigma_grad_nn(
-            p0, obstacle_points, model, device
-        )
+        p0, obstacle_points, model, device
+    )
     print("\n--- Chance constraint debug ---")
     print("robot:", p0)
     print("goal:", p_goal)
     print("min(mu):", np.min(mu))
     print("min(risk):", np.min(mu - BETA * sigma))
     print("mean(sigma):", np.mean(sigma))
-    print("grad norms:", np.linalg.norm(grad, axis=1))
+    # print("grad norms:", np.linalg.norm(grad, axis=1))
     def objective(x):
         dp = x[:2]
         slack = x[2:]
@@ -56,12 +56,12 @@ def solve_step(p0, p_goal, obstacle_points, model, device, epoch):
     res = minimize(objective, np.zeros(4), constraints=cons, method="SLSQP")
     p_next = p0.copy()
     p_next[:2] += res.x[:2]
-    # plot_chance_debug(p0, obstacle_points, mu, sigma, grad, obs_k, "/antfields/chance_constrained_planning/debug", epoch, step_id)
+    plot_chance_debug(p0, p_next, obstacle_points, mu, sigma, grad, obs_k, "/antfields/chance_constrained_planning/debug", epoch, step_id)
     # p_next = torch.tensor(p_next, dtype=torch.float32, device=device)
     return p_next, mu, sigma
     # return p0 + res.x[:2], mu0, sigma0#, res
 
-def plot_chance_debug(robot_xy, obstacle_points, mu, sigma, grad, obs_k, folder, epoch, step_id):
+def plot_chance_debug(robot_xy, optimized_waypoint, obstacle_points, mu, sigma, grad, obs_k, folder, epoch, step_id):
     import os
 
     epoch_folder = os.path.join(folder, f"epoch_{epoch:04d}")
@@ -69,7 +69,8 @@ def plot_chance_debug(robot_xy, obstacle_points, mu, sigma, grad, obs_k, folder,
      # convert tensors to numpy if needed
     if torch.is_tensor(obstacle_points):
         obstacle_points = obstacle_points.detach().cpu().numpy()
-
+    if torch.is_tensor(p_next):
+        p_next = p_next.detach().cpu().numpy()
     if torch.is_tensor(obs_k):
         obs_k = obs_k.detach().cpu().numpy()
 
@@ -86,7 +87,12 @@ def plot_chance_debug(robot_xy, obstacle_points, mu, sigma, grad, obs_k, folder,
 
     plt.scatter(robot_xy[0], robot_xy[1],
                 c='red', s=80, label="robot")
+    plt.scatter(p_next[0], p_next[1],
+            c='green', s=80, label="optimized")
 
+    plt.plot([robot_xy[0], p_next[0]],
+            [robot_xy[1], p_next[1]],
+            color="green", linewidth=2)
     for i in range(len(mu)):
         g = grad[i]
         plt.arrow(robot_xy[0], robot_xy[1],

@@ -37,7 +37,7 @@ def predict_mu_var(model, x):
     return mu.squeeze(-1), torch.exp(logvar).squeeze(-1)
 
 
-def mu_sigma_grad_nn(robot_xy, obstacle_points, model, device, K=20):
+def mu_sigma_grad_nn(robot_xy, obstacle_points, model, device, K=100):
     robot_xy = robot_xy[:2]
     obstacle_points = obstacle_points[:, :2]
 

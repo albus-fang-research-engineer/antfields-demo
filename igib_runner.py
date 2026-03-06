@@ -480,7 +480,7 @@ def get_bounds_from_pts(sample_pts):
     dists[behind_surf] *= -1
 
     #!: sample pts include pc, z_vals, surf_pc, depth_sample. If bounds is smaller than some threshold, then the ray samples following this point will not be used.
-    valid_threshold = 0.02 
+    valid_threshold = 0.005
     filtered_pc_list = []
     filtered_bounds_list = []
     for i in range(dists.shape[0]):
@@ -498,7 +498,7 @@ def get_bounds_from_pts(sample_pts):
 
     # dists -= 0
     # filtered_bounds -= 0.02 #! subtract some value to make the bounds smaller
-    filtered_bounds -= 0.005
+    filtered_bounds -= 0.001
     #? add a ceiling and floor to the bounds
     # dist_ceil = torch.abs(sample_pts["pc"][:, :, 2]-2.3)
     # dist_floor = torch.abs(sample_pts["pc"][:, :, 2]+0.02)

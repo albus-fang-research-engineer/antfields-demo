@@ -373,13 +373,13 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
 
     surf_pc = sample_pts["surf_pc"] # 10x environment scale
     # --- downsample once ---
-    surf_pc = voxel_downsample(surf_pc, voxel_size=0.02)
-    surf_pc = radial_downsample(
-        surf_pc,
-        position * scale_factor,
-        max_pts=3000,
-        near_radius= maximum  * 1.5
-    )
+    # surf_pc = voxel_downsample(surf_pc, voxel_size=0.02)
+    # surf_pc = radial_downsample(
+    #     surf_pc,
+    #     position * scale_factor,
+    #     max_pts=3000,
+    #     near_radius= maximum  * 1.5
+    # )
     with torch.no_grad():
         # -------- neural distance for x0 (same as x1) --------
         local_obs_x0 = knn_local(x0, surf_pc, K=32)
@@ -498,7 +498,7 @@ def get_bounds_from_pts(sample_pts):
 
     # dists -= 0
     # filtered_bounds -= 0.02 #! subtract some value to make the bounds smaller
-    filtered_bounds -= 0.001
+    filtered_bounds -= 0.0001
     #? add a ceiling and floor to the bounds
     # dist_ceil = torch.abs(sample_pts["pc"][:, :, 2]-2.3)
     # dist_floor = torch.abs(sample_pts["pc"][:, :, 2]+0.02)

@@ -56,12 +56,12 @@ def solve_step(p0, p_goal, obstacle_points, model, device, epoch):
     res = minimize(objective, np.zeros(4), constraints=cons, method="SLSQP")
     p_next = p0.copy()
     p_next[:2] += res.x[:2]
-    plot_chance_debug(p0, p_next, obstacle_points, mu, sigma, grad, obs_k, "/antfields/chance_constrained_planning/debug", epoch, step_id)
+    plot_chance_debug(p0, p_next, p_goal, obstacle_points, mu, sigma, grad, obs_k, "/antfields/chance_constrained_planning/debug", epoch, step_id)
     # p_next = torch.tensor(p_next, dtype=torch.float32, device=device)
     return p_next, mu, sigma
     # return p0 + res.x[:2], mu0, sigma0#, res
 
-def plot_chance_debug(robot_xy, optimized_waypoint, obstacle_points, mu, sigma, grad, obs_k, folder, epoch, step_id):
+def plot_chance_debug(robot_xy, p_next, unoptimized_waypoint, obstacle_points, mu, sigma, grad, obs_k, folder, epoch, step_id):
     import os
 
     epoch_folder = os.path.join(folder, f"epoch_{epoch:04d}")
@@ -71,6 +71,8 @@ def plot_chance_debug(robot_xy, optimized_waypoint, obstacle_points, mu, sigma, 
         obstacle_points = obstacle_points.detach().cpu().numpy()
     if torch.is_tensor(p_next):
         p_next = p_next.detach().cpu().numpy()
+    if torch.is_tensor(unoptimized_waypoint):
+        unoptimized_waypoint = unoptimized_waypoint.detach().cpu().numpy()
     if torch.is_tensor(obs_k):
         obs_k = obs_k.detach().cpu().numpy()
 
@@ -86,10 +88,17 @@ def plot_chance_debug(robot_xy, optimized_waypoint, obstacle_points, mu, sigma, 
                 s=20, c="orange", label="K constraints")
 
     plt.scatter(robot_xy[0], robot_xy[1],
-                c='red', s=80, label="robot")
+                c='red', s=20, label="robot")
     plt.scatter(p_next[0], p_next[1],
-            c='green', s=80, label="optimized")
+            c='green', s=20, label="optimized")
 
+    plt.scatter(unoptimized_waypoint[0], unoptimized_waypoint[1],
+            c='purple', s=20, label="nominal waypoint")
+    plt.plot([robot_xy[0], unoptimized_waypoint[0]],
+         [robot_xy[1], unoptimized_waypoint[1]],
+         linestyle="--",
+         color="purple",
+         linewidth=2)
     plt.plot([robot_xy[0], p_next[0]],
             [robot_xy[1], p_next[1]],
             color="green", linewidth=2)

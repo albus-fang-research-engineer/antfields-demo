@@ -109,7 +109,21 @@ def plot_chance_debug(robot_xy, p_next, unoptimized_waypoint, obstacle_points, m
                   head_width=0.002,
                   color="blue",
                   alpha=0.7)
+    points = np.vstack([
+        robot_xy[:2],
+        p_next[:2],
+        unoptimized_waypoint[:2],
+        obs_k[:,:2]
+    ])
 
+    xmin, ymin = points.min(axis=0)
+    xmax, ymax = points.max(axis=0)
+
+    padding = 0.05
+
+    plt.xlim(xmin - padding, xmax + padding)
+    plt.ylim(ymin - padding, ymax + padding)
+    plt.gca().set_aspect('equal', adjustable='box')
     plt.legend()
     plt.title("Chance constraint gradients")
 

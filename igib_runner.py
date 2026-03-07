@@ -216,12 +216,13 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
 
     points /= scale_factor
     bounds /= scale_factor
+    surface_points = sample_pts["surf_pc"]/scale_factor
     #if False and is_gt_speed: #ground truth
     #    bounds = self.get_gt_bounds("datasets/igib-seqs/Beechwood_0_int_scene_mesh.obj", pc)
     # print(bounds)
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
-    return points[0:5000], speeds[0:5000], bounds[0:5000]
+    return points[0:5000], speeds[0:5000], bounds[0:5000], surface_points[:5000]
 
 def sample_points_from_pos(model, position, scale_factor=1):
     """

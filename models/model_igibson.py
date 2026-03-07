@@ -499,7 +499,7 @@ class Model():
                     for height in heights:
                         curviewpoint = self.cur_view.clone()
                         curviewpoint[2] = height
-                        points, speeds, bounds = igib_runner.sample_points_and_speeds_from_pos_new(self, curviewpoint.cpu().numpy(), self.minimum, self.maximum, num=10000, scale_factor=self.scale_factor)
+                        points, speeds, bounds, surface_points = igib_runner.sample_points_and_speeds_from_pos_new(self, curviewpoint.cpu().numpy(), self.minimum, self.maximum, num=10000, scale_factor=self.scale_factor)
                         curpoints.append(points)
                         curspeeds.append(speeds)
                         curbounds.append(bounds)          
@@ -574,7 +574,7 @@ class Model():
 
                 
                 camera_matrix = None
-                self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list)
+                self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list, surface_points)
 
             elif self.mode == READ_FROM_COOKED_DATA:
                 self.plot(self.initial_view, np.array([0.3, 0.2, 0]), self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), None)
@@ -908,7 +908,7 @@ class Model():
         return Ypred
 
 
-    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None):
+    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None, surface_points = None):
         limit = 1
         xmin = [-0.5, -0.5]
         xmax = [0.5, 0.5]
@@ -942,6 +942,11 @@ class Model():
         # ax.invert_yaxis()
         quad1 = ax.pcolormesh(X,Y,V,vmin=0,vmax=1)
 
+        # --- plot surface points ---
+        if surface_points is not None:
+            if isinstance(surface_points, torch.Tensor):
+                surface_points = surface_points.detach().cpu().numpy()
+            ax.scatter(surface_points[:, 0], surface_points[:, 1], c='red', s=3, alpha=1.0, label="surface points", zorder=10)
 
         #! camera triangle
         if camera_matrix is not None:

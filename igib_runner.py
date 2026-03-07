@@ -212,6 +212,27 @@ def get_current_lidar_frame(renderer, camera_position, hidden_instance=[]) -> np
         # it seems more intuitive to change it to (z up, x right, y forward)
         lidar_readings = lidar_readings.dot(np.array([[1, 0, 0], [0, 0, 1], [0, 1, 0]]))
 
+        # -------------------------------------------------
+        # Open3D filtering
+        # -------------------------------------------------
+
+        import open3d as o3d
+
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(lidar_readings)
+
+        # optional: downsample first (helps remove duplicates)
+        pcd = pcd.voxel_down_sample(voxel_size=0.02)
+
+        # statistical outlier removal
+        pcd, ind = pcd.remove_statistical_outlier(
+            nb_neighbors=36,
+            std_ratio=0.8
+        )
+
+        lidar_readings = np.asarray(pcd.points)
+
+        # -------------------------------------------------
         renderer.set_fov(original_fov)
         return lidar_readings   
     ############lidar code end############

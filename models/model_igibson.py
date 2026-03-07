@@ -1161,26 +1161,12 @@ class Model():
                     p.detach().cpu().numpy() if torch.is_tensor(p) else p
                     for p in seg
                 ])
-            ax.plot(seg[:, 0], seg[:, 1],
-                    color='blue',
-                    marker='o',
-                    markersize=0.8,
-                    linestyle='-',
-                    linewidth=1)  
+            ax.plot(seg[:, 0], seg[:, 1], color='blue', marker='o', markersize=0.8, linestyle='-', linewidth=1)  
               
         if obstacle_points is not None:
-
             if torch.is_tensor(obstacle_points):
                 obstacle_points = obstacle_points.detach().cpu().numpy()
-
-            ax.scatter(
-                obstacle_points[:,0],
-                obstacle_points[:,1],
-                color='red',
-                s=3,
-                alpha=0.6,
-                label='obstacles'
-            )
+            ax.scatter(obstacle_points[:, 0], obstacle_points[:, 1], c='red', s=3, alpha=1.0, label="surface points", zorder=10)
 
         ax.contour(X,Y,TT,np.arange(0,5,0.02), cmap='bone', linewidths=0.3)#0.25
         plt.colorbar(quad1,ax=ax, pad=0.1, label='Predicted Velocity')

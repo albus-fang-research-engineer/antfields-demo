@@ -70,24 +70,24 @@ def plot_epoch_paths(nominal_path, optimized_traj, obstacle_points, folder, epoc
         if hasattr(obstacle_points, "detach"):
             obstacle_points = obstacle_points.detach().cpu().numpy()
 
-        plt.scatter(obstacle_points[:,0], obstacle_points[:,1],
+        plt.scatter(obstacle_points[:,0], obstacle_points[:,1], color='black',
                     s=2, alpha=0.2, label="obstacles")
 
     # nominal path
     plt.plot(nominal[:,0], nominal[:,1],
-             '--', linewidth=2, label="nominal path")
+             '--', color='orange', linewidth=2, label="nominal path")
 
-    plt.scatter(nominal[:,0], nominal[:,1], s=20)
+    plt.scatter(nominal[:,0], nominal[:,1], s=36, color='orange')
 
     # optimized path
     plt.plot(opt[:,0], opt[:,1],
-             '-', linewidth=2, label="optimized path")
+             '-',  color = 'blue', linewidth=2, label="optimized path")
 
-    plt.scatter(opt[:,0], opt[:,1], s=20)
+    plt.scatter(opt[:,0], opt[:,1], s=36, color='blue')
 
     # start and goal
     plt.scatter(opt[0,0], opt[0,1], c="green", s=100, label="start")
-    plt.scatter(nominal[-1,0], nominal[-1,1], c="red", s=100, label="goal")
+    plt.scatter(nominal[-1,0], nominal[-1,1], c="purple", s=100, label="goal")
     # ---- zoom to path region ----
     points = np.vstack([nominal[:,:2], opt[:,:2]])
 

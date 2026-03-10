@@ -416,7 +416,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.016  #0.1
+        self.maximum = 0.026  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -1244,7 +1244,67 @@ class Model():
 
                 plt.close(fig)
 
-    def predict_trajectory2(self, Xsrc, Xtar, step_size=0.03, tol=0.03):
+    def predict_trajectory2(self, Xsrc, Xtar,
+                            samples=200,
+                            step_size=0.05,
+                            tol=0.03):
+
+        device = self.Params['Device']
+
+        Xsrc = torch.tensor(Xsrc, dtype=torch.float32, device=device)
+        Xtar = torch.tensor(Xtar, dtype=torch.float32, device=device)
+
+        current = Xsrc.clone()
+
+        traj = [current.cpu().numpy()]
+
+        while torch.norm(current - Xtar) > tol:
+
+            # --------------------------------------------------
+            # Sample candidate waypoints around current position
+            # --------------------------------------------------
+
+            noise = torch.randn(samples, self.dim, device=device)
+
+            noise = noise / torch.norm(noise, dim=1, keepdim=True).clamp(min=1e-6)
+            noise = noise * step_size
+            goal_dir = Xtar - current
+            goal_dir = goal_dir / torch.norm(goal_dir)
+
+            noise += 0.5 * step_size * goal_dir
+            candidates = current[None, :] + noise
+
+            # keep camera height fixed (same as original planner)
+            candidates[:,2] = Xsrc[2]
+
+            # --------------------------------------------------
+            # Evaluate cost using TravelTime
+            # --------------------------------------------------
+
+            goal_expand = Xtar.repeat(samples, 1)
+
+            XP = torch.cat((candidates, goal_expand), dim=1)
+
+            costs = self.TravelTimes(XP)
+
+            # --------------------------------------------------
+            # Choose best waypoint
+            # --------------------------------------------------
+
+            best_idx = torch.argmin(costs)
+
+            current = candidates[best_idx]
+
+            traj.append(current.detach().cpu().numpy())
+
+            if len(traj) > 200:
+                break
+
+        traj.append(Xtar.cpu().numpy())
+
+        return np.array(traj)
+
+    def predict_trajectory2_gradient(self, Xsrc, Xtar, step_size=0.03, tol=0.03):
         Xsrc = Tensor(Xsrc)
         Xtar = Tensor(Xtar)
         XP_traj= torch.cat((Xsrc,Xtar))

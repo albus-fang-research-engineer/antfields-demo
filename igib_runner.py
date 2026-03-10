@@ -405,13 +405,15 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
         # -------- neural distance for x0 (same as x1) --------
         local_obs_x0 = knn_local(x0, surf_pc, K=32)
         # dists0 = batched_cvar_distance(model, x0, local_obs_x0)
-        dists0 = batched_min_mean_distance(model, x0 / scale_factor, local_obs_x0 / scale_factor) * scale_factor
+        # dists0 = batched_min_mean_distance(model, x0 / scale_factor, local_obs_x0 / scale_factor) * scale_factor
+        dists0 = batched_cvar_distance(model, x0 / scale_factor, local_obs_x0 / scale_factor) * scale_factor
         y0 = torch.clip(dists0, minimum, maximum) / maximum
         # --- KNN for all query points at once ---
         local_obs = knn_local(x1, surf_pc, K=32)
         # --- neural CVaR distance ---
         # dists1 = batched_cvar_distance(model, x1, local_obs)
-        dists1 = batched_min_mean_distance(model, x1 / scale_factor, local_obs / scale_factor) * scale_factor
+        # dists1 = batched_min_mean_distance(model, x1 / scale_factor, local_obs / scale_factor) * scale_factor
+        dists1 = batched_cvar_distance(model, x1 / scale_factor, local_obs / scale_factor) * scale_factor
 #----------------------------------------------------------
 #----------------------------------------------------------
 #----------------------------------------------------------

@@ -302,7 +302,10 @@ class NN(torch.nn.Module):
         return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], dim=-1)    #  2*len(B)
 
     def out(self, coords):
-        
+        '''
+        returns: x starts with being input to the NN, then gets encodes, and finally becomes the output tau,
+        XP is [start_coords, goal_coords]
+        '''
         coords = coords.clone().detach().requires_grad_(True) # allows to take derivative w.r.t. input
         size = coords.shape[0]
         x0 = coords[:,:self.dim]

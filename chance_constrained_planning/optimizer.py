@@ -88,7 +88,7 @@ def plot_chance_debug(robot_xy, p_next, unoptimized_waypoint, obstacle_points, m
                 s=20, c="orange", label="K constraints")
 
     plt.scatter(robot_xy[0], robot_xy[1],
-                c='red', s=20, label="robot")
+                c='red', s=50, label="robot")
     plt.scatter(p_next[0], p_next[1],
             c='green', s=20, label="optimized")
 

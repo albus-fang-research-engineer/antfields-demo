@@ -14,24 +14,18 @@ def _to_numpy(x):
     # already numpy / list / tuple → numpy
     return np.asarray(x)
 
-def rollout_optimized(start, path, obstacle_points, solver, model, device, epoch):
+def rollout_optimized(start, path, obstacle_points, solver, model, device, epoch, folder=""):
     p = _to_numpy(start).copy()
     traj = [p.copy()]
     nominal = [_to_numpy(start).copy()]
     for wp in path:
         wp_np = _to_numpy(wp)
         nominal.append(wp_np.copy())
-        p, mu, sigma = solver(p, wp_np, obstacle_points, model, device, epoch)
+        p, mu, sigma = solver(p, wp_np, obstacle_points, model, device, epoch, folder)
         p = _to_numpy(p).copy()
         traj.append(p.copy())
 
-    plot_epoch_paths(
-        nominal,
-        traj,
-        obstacle_points,
-        "/antfields/chance_constrained_planning/debug",
-        epoch
-    )
+    plot_epoch_paths(nominal,traj,obstacle_points,folder,epoch)
 
     return traj
 

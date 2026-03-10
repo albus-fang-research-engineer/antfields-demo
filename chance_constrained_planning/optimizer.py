@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # BETA = norm.ppf(1 - DELTA) # chance constraint
 debug_step_counter = 0
 last_debug_epoch = -1
-def solve_step(p0, p_goal, obstacle_points, model, device, epoch):
+def solve_step(p0, p_goal, obstacle_points, model, device, epoch, folder=""):
     '''
     p0 is current position, p_goal is the next waypoint to track
     p0 and p_goal are not global start and goal points
@@ -56,7 +56,8 @@ def solve_step(p0, p_goal, obstacle_points, model, device, epoch):
     res = minimize(objective, np.zeros(4), constraints=cons, method="SLSQP")
     p_next = p0.copy()
     p_next[:2] += res.x[:2]
-    plot_chance_debug(p0, p_next, p_goal, obstacle_points, mu, sigma, grad, obs_k, "/antfields/chance_constrained_planning/debug", epoch, step_id)
+    # plot_chance_debug(p0, p_next, p_goal, obstacle_points, mu, sigma, grad, obs_k, "/antfields/chance_constrained_planning/debug", epoch, step_id)
+    plot_chance_debug(p0, p_next, p_goal, obstacle_points, mu, sigma, grad, obs_k, folder, epoch, step_id)
     # p_next = torch.tensor(p_next, dtype=torch.float32, device=device)
     return p_next, mu, sigma
     # return p0 + res.x[:2], mu0, sigma0#, res

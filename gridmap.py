@@ -378,6 +378,15 @@ class OccupancyGridMap:
                     if self.visited[temp_y, temp_x] == 2 and self.data[temp_y, temp_x] < self.occupancy_threshold:
                         x, y = self.get_coordinates_from_index(temp_x, temp_y)
                         return x, y
+        for i in range (-2,6):
+            for j in range (-2,6):
+                temp_x = x_index*4 + i
+                temp_y = y_index*4 + j
+                #print(self.visited[temp_y, temp_x])
+                if temp_x>=0 and temp_y>=0 and temp_x<=99 and temp_y<=99:
+                    if self.visited[temp_y, temp_x] >= 1 and self.data[temp_y, temp_x] < self.occupancy_threshold:
+                        x, y = self.get_coordinates_from_index(temp_x, temp_y)
+                        return x, y
         # x = (x_index+0.5)*self.block_meters
         # y = (y_index+0.5)*self.block_meters
         # x = x - self.offset

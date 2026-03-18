@@ -26,6 +26,11 @@ def rollout_optimized(start, path, obstacle_points, solver, model, device, epoch
         traj.append(p.copy())
 
     plot_epoch_paths(nominal,traj,obstacle_points,folder,epoch)
+    nominal_np = np.asarray(nominal)
+    traj_np = np.asarray(traj)
+
+    np.save(f"{folder}/epoch_{epoch:04d}_nominal.npy", nominal_np)
+    np.save(f"{folder}/epoch_{epoch:04d}_optimized.npy", traj_np)
 
     return traj
 

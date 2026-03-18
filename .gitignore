@@ -2,3 +2,5 @@
 *.pyc
 Experiments/
 debug/
+lidar_points/
+known_bugs.md

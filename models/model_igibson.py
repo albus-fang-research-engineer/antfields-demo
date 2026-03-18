@@ -428,6 +428,12 @@ class Model():
         self.dist_model = self.dist_model.to(self.Params['Device'])
         self.dist_device = self.Params['Device']
 
+        # ===== Fixed experiment setup =====
+        # self.fixed_start = torch.tensor([-0.3, -0.2, 0.0], dtype=torch.float32)
+        self.fixed_goal  = torch.tensor([ 0.3,  0.2, 0.0], dtype=torch.float32)
+
+        # self.fixed_start = self.fixed_start.to(self.Params['Device'])
+        self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
     
     def gradient(self, y, x, create_graph=True):                                                               
                                                                                   
@@ -655,7 +661,8 @@ class Model():
                     if coverage > 0.543:
                         # pass
                         break
-                    traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
+                    # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
+                    traj_list, traj_ind = self.policy_goal_direction(self.cur_view.detach().clone().cpu().numpy(), height=0) 
                     # traj_list is the full gradient-descent trajectory from current position to the selected unexplored block. 
                     # traj_ind is the index along the trajectory where accumulated path length ≈ 0.05 meters.
                     nbv = Tensor(traj_list[traj_ind])
@@ -1420,4 +1427,64 @@ class Model():
         return traj_list, index - 1
     
 
+    def policy_goal_direction(self, current_location, height):
+
+        possible_locs = self.occ_map.get_block_centers()
+        goal = self.fixed_goal.detach().cpu().numpy()
+        if len(possible_locs) == 0:
+            return None, None
+
+        current = current_location[:2]
+        goal_vec = goal[:2] - current
+
+        # normalize goal direction
+        goal_norm = np.linalg.norm(goal_vec)
+        if goal_norm < 1e-6:
+            return None, None
+
+        goal_dir = goal_vec / goal_norm
+
+        scores = []
+
+        for f in possible_locs:
+            v1 = f - current
+            v1_norm = np.linalg.norm(v1)
+
+            if v1_norm < 1e-6:
+                scores.append(-1e9)
+                continue
+
+            v1_dir = v1 / v1_norm
+
+            # cosine similarity
+            alignment = np.dot(v1_dir, goal_dir)
+            scores.append(alignment)
+
+        scores = np.array(scores)
+
+        # pick best aligned frontier
+        best_idx = np.argmax(scores)
+        target = possible_locs[best_idx]
+
+        target = np.concatenate([target, [height]])
+
+        # generate trajectory to that frontier
+        traj_list = self.predict_trajectory2(
+            torch.tensor(current_location),
+            torch.tensor(target),
+            step_size=0.03
+        )
+
+        # take small step (same as before)
+        step_size = 0.05
+        accum_dis = 0
+        index = 0
+
+        while accum_dis < step_size and index < len(traj_list) - 1:
+            accum_dis += np.linalg.norm(
+                traj_list[index+1][:2] - traj_list[index][:2]
+            )
+            index += 1
+
+        return traj_list, index - 1
     

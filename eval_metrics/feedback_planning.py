@@ -20,7 +20,14 @@ def ensure_3d(pts):
         pts = np.hstack([pts, np.zeros((len(pts), 1))])
     return pts
 
+import open3d.visualization.rendering as rendering
 
+def add_with_alpha(vis, name, geom, color, alpha):
+    mat = rendering.MaterialRecord()
+    mat.shader = "defaultLitTransparency"
+    mat.base_color = [color[0], color[1], color[2], alpha]
+    vis.add_geometry(name, geom, mat)
+    
 def create_lineset(points, color):
     lines = [[i, i + 1] for i in range(len(points) - 1)]
     colors = [color for _ in lines]
@@ -86,8 +93,22 @@ def create_tube(points, radius=0.03, color=[0, 0, 1]):
         meshes.append(sphere)
     return meshes
 
+def remove_ceiling(mesh, z_threshold=0.5):
+    verts = np.asarray(mesh.vertices)
+    tris = np.asarray(mesh.triangles)
+
+    # Keep triangles ONLY if all vertices are below threshold
+    mask = np.all(verts[tris][:, :, 2] < z_threshold, axis=1)
+
+    mesh.triangles = o3d.utility.Vector3iVector(tris[mask])
+    mesh.remove_unreferenced_vertices()
+    mesh.compute_vertex_normals()
+
+    return mesh
 def main():
+    import open3d.visualization.gui as gui
     mesh = o3d.io.read_triangle_mesh(MESH_PATH)
+    mesh = remove_ceiling(mesh, z_threshold=0.10)
     mesh.compute_vertex_normals()
 
     wp_opt = ensure_3d(load_waypoints(NPY_OPT_PATH))
@@ -106,18 +127,42 @@ def main():
     # # 🟠 Nominal
     # nom_lines = create_lineset(wp_nom, [1, 0.5, 0])
     opt_meshes = create_tube(wp_opt, radius=0.003, color=[0, 0, 1])
-    nom_meshes = create_tube(wp_nom, radius=0.0018, color=[1, 0, 0])
+    nom_meshes = create_tube(wp_nom, radius=0.0026, color=[1, 0, 0])
     # 🟢 Third path (green)
     third_meshes = create_tube(wp_third, radius=0.0036, color=[0, 1, 0])
-    o3d.visualization.draw_geometries(
-        [mesh] + nom_meshes + opt_meshes + third_meshes + [start_nom, start_third, start_opt]
-    )
-    # o3d.visualization.draw_geometries([
-    #     mesh,
-    #     nom_lines,
-    #     opt_lines,
-    # ])
+    # o3d.visualization.draw_geometries(
+    #     [mesh] + nom_meshes + opt_meshes + third_meshes + [start_nom, start_third, start_opt]
+    # )
+    # ---- initialize GUI ----
+    app = gui.Application.instance
+    app.initialize()
 
+    vis = o3d.visualization.O3DVisualizer("Paths", 1024, 768)
+    vis.set_background(
+        np.array([0.5, 0.5, 0.5, 1.0], dtype=np.float32),  # black
+        None
+    )
+    # mesh (solid)
+    vis.add_geometry("mesh", mesh)
+    vis.show_skybox(False)
+    vis.scene.scene.enable_sun_light(False)
+    # 🔴 nominal (faded)
+    for i, m in enumerate(nom_meshes):
+        add_with_alpha(vis, f"nom_{i}", m, [1, 0, 0], 0.5)
+
+    # 🔵 optimized (semi solid)
+    for i, m in enumerate(opt_meshes):
+        add_with_alpha(vis, f"opt_{i}", m, [0, 0, 1], 0.7)
+
+    # 🟢 third (FULL emphasis)
+    for i, m in enumerate(third_meshes):
+        add_with_alpha(vis, f"third_{i}", m, [0, 1, 0], 1.0)
+    for i, s in enumerate([start_nom, start_third, start_opt]):
+        add_with_alpha(vis, f"start_{i}", s, [0, 0, 0], 1.0)
+    vis.reset_camera_to_default()
+
+    app.add_window(vis)
+    app.run()
 
 if __name__ == "__main__":
     main()

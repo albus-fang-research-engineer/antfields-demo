@@ -36,8 +36,58 @@ def predict_mu_var(model, x):
     logvar = torch.clamp(logvar, -20.0, 10.0)
     return mu.squeeze(-1), torch.exp(logvar).squeeze(-1)
 
+def mu_sigma_grad_nn(robot_xy, obstacle_points, model, device, K=60, skip=10):
+    robot_xy = robot_xy[:2]
+    obstacle_points = obstacle_points[:, :2]
 
-def mu_sigma_grad_nn(robot_xy, obstacle_points, model, device, K=100):
+    if not torch.is_tensor(robot_xy):
+        robot_xy = torch.tensor(robot_xy, dtype=torch.float32, device=device)
+    else:
+        robot_xy = robot_xy.to(device).float()
+
+    if not torch.is_tensor(obstacle_points):
+        obstacle_points = torch.tensor(obstacle_points, dtype=torch.float32, device=device)
+    else:
+        obstacle_points = obstacle_points.to(device).float()
+
+    robot_xy = robot_xy.requires_grad_(True)
+
+    N = obstacle_points.shape[0]
+    robot_rep = robot_xy.view(1, 2).expand(N, 2)
+    net_input = torch.cat([robot_rep, obstacle_points], dim=1)
+
+    from load_njsdf.inference import predict_mu_var
+    mu, var = predict_mu_var(model, net_input)
+
+    mu = mu.view(-1)                                  # (N,)
+    sigma = torch.sqrt(torch.clamp(var.view(-1), min=1e-12))  # (N,)
+
+    # ---- SELECT TOP-K USING RISK (NO GRADS NEEDED YET) ----
+    risk = mu - BETA * sigma                          # (N,)
+    K = min(K, N)
+
+    # get indices of K smallest risk values (most dangerous)
+    # torch.topk with largest=False stays on GPU
+    idx = torch.topk(risk, k=K, largest=False).indices  # (K,)
+    idx = idx[torch.argsort(risk[idx])]
+    idx = idx[skip:]
+    # gather the K values
+    mu_k = mu[idx]               # (K,)
+    sigma_k = sigma[idx]         # (K,)
+
+    # ---- COMPUTE GRADS ONLY FOR THOSE K ----
+    grad_k = []
+    for j in range(mu_k.shape[0]):
+        g = torch.autograd.grad(mu_k[j], robot_xy, retain_graph=True)[0]  # (2,)
+        grad_k.append(g)
+    grad_k = torch.stack(grad_k, dim=0)  # (K,2)
+
+    return (mu_k.detach().cpu().numpy(),
+            sigma_k.detach().cpu().numpy(),
+            grad_k.detach().cpu().numpy(),
+            obstacle_points[idx].detach().cpu().numpy())
+
+def mu_sigma_grad_nn_no_outlier(robot_xy, obstacle_points, model, device, K=100):
     robot_xy = robot_xy[:2]
     obstacle_points = obstacle_points[:, :2]
 

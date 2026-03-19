@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-NPY_PATH = "/antfields/Experiments/03_18_12_10/epoch_0950_optimized.npy"
+NPY_PATH = "/antfields/Experiments/03_18_12_10/epoch_1250_optimized.npy"
 
 
 def print_waypoints():

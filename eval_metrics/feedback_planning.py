@@ -5,9 +5,9 @@ import os
 # ==== CONFIG ====
 MESH_PATH = "/antfields/data/mesh.obj"
 
-NPY_OPT_PATH = "/antfields/Experiments/03_18_16_35/epoch_0200_optimized.npy"
-NPY_NOM_PATH = "/antfields/Experiments/03_18_16_35/epoch_0100_optimized.npy"
-
+NPY_OPT_PATH = "/antfields/Experiments/03_19_15_42/epoch_0100_optimized.npy"
+NPY_NOM_PATH = "/antfields/Experiments/03_19_15_42/epoch_0050_optimized.npy"
+NPY_THIRD_PATH = "//antfields/Experiments/03_19_15_42/epoch_0150_optimized.npy"
 
 def load_waypoints(path):
     if not os.path.exists(path):
@@ -32,8 +32,11 @@ def create_lineset(points, color):
 
     return line_set
 
-import numpy as np
-import open3d as o3d
+def create_start_marker(point, radius=0.0105, color=[0, 0, 0]):
+    sphere = o3d.geometry.TriangleMesh.create_sphere(radius=radius)
+    sphere.paint_uniform_color(color)
+    sphere.translate(point)
+    return sphere
 
 def create_tube(points, radius=0.03, color=[0, 0, 1]):
     meshes = []
@@ -89,19 +92,25 @@ def main():
 
     wp_opt = ensure_3d(load_waypoints(NPY_OPT_PATH))
     wp_nom = ensure_3d(load_waypoints(NPY_NOM_PATH))
-
+    wp_third = ensure_3d(load_waypoints(NPY_THIRD_PATH))
+    y_offset = -0.005
+    wp_opt[-3:-1, 1] += y_offset
     print(f"[INFO] Optimized shape: {wp_opt.shape}")
     print(f"[INFO] Nominal shape: {wp_nom.shape}")
-
+    print(f"[INFO] Third shape: {wp_third.shape}")
     # 🔵 Optimized
     # opt_lines = create_lineset(wp_opt, [0, 0, 1])
-
+    start_opt = create_start_marker(wp_opt[0], radius=0.0105, color=[0, 0, 0])
+    start_nom = create_start_marker(wp_nom[0], radius=0.0105, color=[0, 0, 0])
+    start_third = create_start_marker(wp_third[0], radius=0.0105, color=[0, 0, 0])
     # # 🟠 Nominal
     # nom_lines = create_lineset(wp_nom, [1, 0.5, 0])
     opt_meshes = create_tube(wp_opt, radius=0.003, color=[0, 0, 1])
-    nom_meshes = create_tube(wp_nom, radius=0.002, color=[1, 0.5, 0])
+    nom_meshes = create_tube(wp_nom, radius=0.0018, color=[1, 0, 0])
+    # 🟢 Third path (green)
+    third_meshes = create_tube(wp_third, radius=0.0036, color=[0, 1, 0])
     o3d.visualization.draw_geometries(
-        [mesh] + nom_meshes + opt_meshes
+        [mesh] + nom_meshes + opt_meshes + third_meshes + [start_nom, start_third, start_opt]
     )
     # o3d.visualization.draw_geometries([
     #     mesh,

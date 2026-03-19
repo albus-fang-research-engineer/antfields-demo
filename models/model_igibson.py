@@ -1403,7 +1403,7 @@ class Model():
         
         curloc_tensor = torch.from_numpy(current_location).float()
 
-        traj_list = self.predict_trajectory2(curloc_tensor, curtargetloc_small_tensor, step_size=0.02)
+        traj_list = self.predict_trajectory2(curloc_tensor, curtargetloc_small_tensor, step_size=0.015)
 
         # find the largest point that is smaller than the step size
         if True:
@@ -1472,7 +1472,7 @@ class Model():
         traj_list = self.predict_trajectory2(
             torch.tensor(current_location),
             torch.tensor(target),
-            step_size=0.03
+            step_size=0.015
         )
 
         # take small step (same as before)
@@ -1494,7 +1494,7 @@ class Model():
         traj_list = self.predict_trajectory2(
             current_location,
             goal,
-            step_size=0.03
+            step_size=0.015
         )
 
         step_size = 0.05

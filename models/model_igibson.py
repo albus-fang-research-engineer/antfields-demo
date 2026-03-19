@@ -372,7 +372,7 @@ class Model():
         self.renderer = renderer
         self.dim = dim
         self.scale_factor = scale_factor
-        current_time = datetime.utcnow()-timedelta(hours=5)
+        current_time = datetime.utcnow()-timedelta(hours=4)
         self.folder = self.Params['ModelPath']+"/"+current_time.strftime("%m_%d_%H_%M")
 
         # Pass the JSON information

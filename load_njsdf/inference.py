@@ -16,7 +16,7 @@ def load_sdf_2d_model():
         skips=[]
     ).model
 
-    model_path = Path(__file__).parent / "models" / "sdf_2d.pt"
+    model_path = Path(__file__).parent / "models" / "sdf_2d_lidar_mesh_units.pt"
 
     ckpt = torch.load(model_path, map_location=device)
     model.load_state_dict(ckpt["model"])

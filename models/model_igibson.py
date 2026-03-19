@@ -416,7 +416,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.026  #0.1
+        self.maximum = 0.012  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -430,7 +430,7 @@ class Model():
 
         # ===== Fixed experiment setup =====
         # self.fixed_start = torch.tensor([-0.3, -0.2, 0.0], dtype=torch.float32)
-        self.fixed_goal  = torch.tensor([ 0.3,  0.2, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([ 0.0699,  -0.076, 0.0], dtype=torch.float32)
 
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
@@ -544,7 +544,7 @@ class Model():
 
     def load_rawdata(self):
         #! load data
-        initial_view = Tensor([-0.3, -0.2, 0])
+        initial_view = Tensor([-0.12, -0.046, 0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file
@@ -662,7 +662,7 @@ class Model():
                         # pass
                         break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
-                    traj_list, traj_ind = self.policy_goal_direction(self.cur_view.detach().clone().cpu().numpy(), height=0) 
+                    traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0) 
                     # traj_list is the full gradient-descent trajectory from current position to the selected unexplored block. 
                     # traj_ind is the index along the trajectory where accumulated path length ≈ 0.05 meters.
                     nbv = Tensor(traj_list[traj_ind])
@@ -1403,7 +1403,7 @@ class Model():
         
         curloc_tensor = torch.from_numpy(current_location).float()
 
-        traj_list = self.predict_trajectory2(curloc_tensor, curtargetloc_small_tensor, step_size=0.03)
+        traj_list = self.predict_trajectory2(curloc_tensor, curtargetloc_small_tensor, step_size=0.02)
 
         # find the largest point that is smaller than the step size
         if True:
@@ -1487,4 +1487,24 @@ class Model():
             index += 1
 
         return traj_list, index - 1
-    
+    def policy_goal_direct(self, current_location, height):
+        goal = self.fixed_goal.detach().cpu().numpy().copy()
+        goal[2] = height
+
+        traj_list = self.predict_trajectory2(
+            current_location,
+            goal,
+            step_size=0.03
+        )
+
+        step_size = 0.05
+        accum_dis = 0.0
+        index = 0
+
+        while accum_dis < step_size and index < len(traj_list) - 1:
+            accum_dis += np.linalg.norm(
+                traj_list[index + 1][:2] - traj_list[index][:2]
+            )
+            index += 1
+
+        return traj_list, index - 1

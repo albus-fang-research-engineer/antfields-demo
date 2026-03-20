@@ -658,8 +658,13 @@ class Model():
                     self.occ_map.update(self.cur_view.clone().cpu().numpy(), frame_points[valid].cpu().numpy(), frame_bounds[valid].cpu().numpy())
                     coverage = self.occ_map.get_coverage()
                     print("Occupancy Grid Coverage:", coverage)
-                    if coverage > 0.543:
-                        # pass
+                    # if coverage > 0.543:
+                    #     # pass
+                    #     break
+                    if self.reached_goal(self.cur_view):
+                        print("Reached goal! Stopping exploration.")
+                        length = self.compute_path_length(self.trajectory)
+                        print(f"Total traversed length: {length * self.scale_factor:.4f} m")
                         break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
                     traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0) 
@@ -726,11 +731,20 @@ class Model():
                         optimized_segment,
                         self
                     )
+                # if self.trajectory is None:
+                #     self.trajectory = traj #stores the entire path history over time.
+                # else:
+                #     self.trajectory = np.concatenate([self.trajectory, traj], axis=0) 
+                segment_np = np.array([
+                    p.detach().cpu().numpy() if torch.is_tensor(p) else p
+                    for p in optimized_segment
+                ])
+
                 if self.trajectory is None:
-                    self.trajectory = traj #stores the entire path history over time.
+                    self.trajectory = segment_np
                 else:
-                    self.trajectory = np.concatenate([self.trajectory, traj], axis=0) 
-                print("traj is:", traj)
+                    self.trajectory = np.concatenate([self.trajectory, segment_np[1:]], axis=0)
+                # print("traj is:", traj)
                 
                 
                 #? ******************SAVINGS start*******************
@@ -1508,3 +1522,24 @@ class Model():
             index += 1
 
         return traj_list, index - 1
+    def reached_goal(self, current_pos, tol=0.03):
+        """
+        Check if current position is close enough to goal.
+        """
+        if torch.is_tensor(current_pos):
+            current_pos = current_pos.detach().cpu().numpy()
+        if torch.is_tensor(self.fixed_goal):
+            goal = self.fixed_goal.detach().cpu().numpy()
+        else:
+            goal = self.fixed_goal
+
+        dist = np.linalg.norm(current_pos[:2] - goal[:2])
+        return dist < tol
+    def compute_path_length(self, path):
+        if path is None or len(path) < 2:
+            return 0.0
+
+        path = np.asarray(path)
+        diffs = path[1:, :2] - path[:-1, :2]
+        dists = np.linalg.norm(diffs, axis=1)
+        return np.sum(dists)

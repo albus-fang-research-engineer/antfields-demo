@@ -1,14 +1,14 @@
 import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import norm
-from load_njsdf.inference import mu_sigma_grad_nn, BETA
+from load_njsdf.inference import mu_sigma_grad_nn, BETA, sigma_nn
 import torch
 import matplotlib.pyplot as plt
 # DELTA = 0.1/10
 # BETA = norm.ppf(1 - DELTA) # chance constraint
 debug_step_counter = 0
 last_debug_epoch = -1
-def solve_step(p0, p_goal, obstacle_points, model, device, epoch, folder=""):
+def solve_step(p0, p_goal, obstacle_points, model, device, epoch, path_start, folder=""):
     '''
     p0 is current position, p_goal is the next waypoint to track
     p0 and p_goal are not global start and goal points
@@ -27,6 +27,10 @@ def solve_step(p0, p_goal, obstacle_points, model, device, epoch, folder=""):
     mu, sigma, grad, obs_k = mu_sigma_grad_nn(
         p0, obstacle_points, model, device
     )
+    sigma_start= sigma_nn(path_start, obs_k, model, device)
+    print("sigma_virtual = ", sigma)
+    print("\n sigma_start = ", sigma_start)
+    sigma = sigma_start
     print("\n--- Chance constraint debug ---")
     print("robot:", p0)
     print("goal:", p_goal)

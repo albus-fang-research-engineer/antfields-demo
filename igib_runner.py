@@ -56,8 +56,11 @@ def get_current_lidar_frame(renderer, camera_position, hidden_instance=[]) -> np
         # print("lidar reading shape 2",lidar_readings.shape)
         lidar_readings = lidar_readings[dist > 0]
         dist = dist[dist > 0]
-        
-        sigma = np.where(dist < 1.0, 0.01, 0.01 * dist)
+        dist_m = dist * 10.0
+        # compute sigma in meters
+        sigma_m = np.where(dist_m < 1.0, 0.01, 0.01 * dist_m)
+        # convert sigma back to mesh units
+        sigma = sigma_m / 10.0
         dirs = lidar_readings / dist[:, None]
         range_noise = np.random.randn(len(dist)) * sigma
         lidar_readings = lidar_readings + dirs * range_noise[:, None]

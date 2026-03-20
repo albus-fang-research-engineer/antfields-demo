@@ -548,7 +548,8 @@ class Model():
                     if coverage > 0.543:
                         # pass
                         break
-                    traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0)
+                    # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0)
+                    traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0)
                     nbv = Tensor(traj_list[traj_ind])
 
 
@@ -1126,3 +1127,45 @@ class Model():
     
 
     
+    def policy_goal_direct(self, current_location, height):
+        goal = self.fixed_goal.detach().cpu().numpy().copy()
+        goal[2] = height
+
+        traj_list = self.predict_trajectory2(
+            current_location,
+            goal,
+            step_size=0.005
+        )
+
+        step_size = 0.05
+        accum_dis = 0.0
+        index = 0
+
+        while accum_dis < step_size and index < len(traj_list) - 1:
+            accum_dis += np.linalg.norm(
+                traj_list[index + 1][:2] - traj_list[index][:2]
+            )
+            index += 1
+
+        return traj_list, index - 1
+    def reached_goal(self, current_pos, tol=0.01):
+        """
+        Check if current position is close enough to goal.
+        """
+        if torch.is_tensor(current_pos):
+            current_pos = current_pos.detach().cpu().numpy()
+        if torch.is_tensor(self.fixed_goal):
+            goal = self.fixed_goal.detach().cpu().numpy()
+        else:
+            goal = self.fixed_goal
+
+        dist = np.linalg.norm(current_pos[:2] - goal[:2])
+        return dist < tol
+    def compute_path_length(self, path):
+        if path is None or len(path) < 2:
+            return 0.0
+
+        path = np.asarray(path)
+        diffs = path[1:, :2] - path[:-1, :2]
+        dists = np.linalg.norm(diffs, axis=1)
+        return np.sum(dists)

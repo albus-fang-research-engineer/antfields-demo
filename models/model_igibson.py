@@ -271,7 +271,7 @@ class Model():
         self.renderer = renderer
         self.dim = dim
         self.scale_factor = scale_factor
-        current_time = datetime.utcnow()-timedelta(hours=5)
+        current_time = datetime.utcnow()-timedelta(hours=4)
         self.folder = self.Params['ModelPath']+"/"+current_time.strftime("%m_%d_%H_%M")
 
         # Pass the JSON information
@@ -434,7 +434,7 @@ class Model():
 
     def load_rawdata(self):
         #! load data
-        initial_view = Tensor([-0.3, -0.2, 0])
+        initial_view = Tensor([-0.12, -0.046, 0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file
@@ -548,8 +548,13 @@ class Model():
                     self.occ_map.update(self.cur_view.clone().cpu().numpy(), frame_points[valid].cpu().numpy(), frame_bounds[valid].cpu().numpy())
                     coverage = self.occ_map.get_coverage()
                     print("Occupancy Grid Coverage:", coverage)
-                    if coverage > 0.543:
-                        # pass
+                    # if coverage > 0.543:
+                    #     # pass
+                    #     break
+                    if self.reached_goal(self.cur_view):
+                        print("Reached goal! Stopping exploration.")
+                        length = self.compute_path_length(self.trajectory)
+                        print(f"Total traversed length: {length * self.scale_factor:.4f} m")
                         break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0)
                     traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0)
@@ -1013,7 +1018,7 @@ class Model():
             plt.savefig(self.folder+"/plots_dist_"+str(epoch)+".png")
             plt.close()
 
-    def predict_trajectory2(self, Xsrc, Xtar, step_size=0.03, tol=0.03):
+    def predict_trajectory2(self, Xsrc, Xtar, step_size=0.03, tol=0.01):
         Xsrc = Tensor(Xsrc)
         Xtar = Tensor(Xtar)
         XP_traj= torch.cat((Xsrc,Xtar))

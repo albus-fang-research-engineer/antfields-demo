@@ -320,7 +320,10 @@ class Model():
 
         self.init_network()
         
+        self.fixed_goal = torch.tensor([ 0.0699,  -0.076, 0.0], dtype=torch.float32)
 
+        # self.fixed_start = self.fixed_start.to(self.Params['Device'])
+        self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
     
     def gradient(self, y, x, create_graph=True):                                                               
                                                                                   

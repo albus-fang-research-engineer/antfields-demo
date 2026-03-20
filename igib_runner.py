@@ -55,6 +55,15 @@ def get_current_lidar_frame(renderer, camera_position, hidden_instance=[]) -> np
         dist = np.linalg.norm(lidar_readings, axis=1)
         # print("lidar reading shape 2",lidar_readings.shape)
         lidar_readings = lidar_readings[dist > 0]
+        dist = dist[dist > 0]
+        
+        sigma = np.where(dist < 1.0, 0.01, 0.01 * dist)
+        dirs = lidar_readings / dist[:, None]
+        range_noise = np.random.randn(len(dist)) * sigma
+        lidar_readings = lidar_readings + dirs * range_noise[:, None]
+
+
+
         lidar_readings[:, 2] = -lidar_readings[:, 2]  # make z pointing out
         # print("lidar reading shape 3",lidar_readings.shape)
         return lidar_readings
@@ -262,7 +271,7 @@ def sample_points_from_pos(model, position, scale_factor=1):
 
         #TODO: save depth_dirs, depth, T_np, and current position to a dictionary
         frame_idx = model.frame_idx
-        savepath = model.folder+"/frame_"+str(frame_idx)+".npy"
+        # savepath = model.folder+"/frame_"+str(frame_idx)+".npy"
         sub_dataset = {}
         sub_dataset["depth_dirs"] = depth_dirs
         sub_dataset["depth"] = depth

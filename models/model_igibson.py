@@ -653,7 +653,7 @@ class Model():
             else:
                 self.all_framedata = torch.cat((self.all_framedata, frame_data.unsqueeze(0)), dim=0)
             print(self.all_framedata.shape)
-            np.save(f"{self.folder}/explored_data.npy", self.all_framedata.clone().cpu().numpy())
+            # np.save(f"{self.folder}/explored_data.npy", self.all_framedata.clone().cpu().numpy())
 
 
         #! mix data so that the start and end points are from different frames

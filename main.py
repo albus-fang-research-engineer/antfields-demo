@@ -66,8 +66,8 @@ def main():
 
     print("\n===== FINAL RESULTS =====")
     print(f"Runs completed: {len(lengths)}")
-    print(f"Mean path length: {np.mean(lengths):.4f} m")
-    print(f"Std: {np.std(lengths):.4f} m")
+    print(f"Mean path length: {np.mean(lengths) * 10:.4f} m")
+    print(f"Std: {np.std(lengths)*10:.4f} m")
 
 if __name__ == '__main__':
     main()

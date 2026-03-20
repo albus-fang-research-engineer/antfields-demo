@@ -430,7 +430,7 @@ class Model():
 
         # ===== Fixed experiment setup =====
         # self.fixed_start = torch.tensor([-0.3, -0.2, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([ 0.0699,  -0.076, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
 
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
@@ -1268,7 +1268,7 @@ class Model():
     def predict_trajectory2(self, Xsrc, Xtar,
                             samples=200,
                             step_size=0.05,
-                            tol=0.03):
+                            tol=0.01):
 
         device = self.Params['Device']
 
@@ -1508,7 +1508,7 @@ class Model():
         traj_list = self.predict_trajectory2(
             current_location,
             goal,
-            step_size=0.015
+            step_size=0.005
         )
 
         step_size = 0.05
@@ -1522,7 +1522,7 @@ class Model():
             index += 1
 
         return traj_list, index - 1
-    def reached_goal(self, current_pos, tol=0.03):
+    def reached_goal(self, current_pos, tol=0.01):
         """
         Check if current position is close enough to goal.
         """

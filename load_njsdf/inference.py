@@ -3,7 +3,7 @@ from pathlib import Path
 from load_njsdf.sdf.stochastic_robot_sdf import RobotSdfCollisionNet
 import torch
 from scipy.stats import norm
-DELTA = 0.05/10
+DELTA = 0.01/10
 BETA = norm.ppf(1 - DELTA)
 
 def load_sdf_2d_model():
@@ -86,6 +86,33 @@ def mu_sigma_grad_nn(robot_xy, obstacle_points, model, device, K=60, skip=10):
             sigma_k.detach().cpu().numpy(),
             grad_k.detach().cpu().numpy(),
             obstacle_points[idx].detach().cpu().numpy())
+
+def sigma_nn(robot_xy, obstacle_points, model, device):
+    robot_xy = robot_xy[:2]
+    obstacle_points = obstacle_points[:, :2]
+
+    if not torch.is_tensor(robot_xy):
+        robot_xy = torch.tensor(robot_xy, dtype=torch.float32, device=device)
+    else:
+        robot_xy = robot_xy.to(device).float()
+
+    if not torch.is_tensor(obstacle_points):
+        obstacle_points = torch.tensor(obstacle_points, dtype=torch.float32, device=device)
+    else:
+        obstacle_points = obstacle_points.to(device).float()
+
+    N = obstacle_points.shape[0]
+    robot_rep = robot_xy.view(1, 2).expand(N, 2)
+    net_input = torch.cat([robot_rep, obstacle_points], dim=1)
+
+    from load_njsdf.inference import predict_mu_var
+    with torch.no_grad():
+        _, var = predict_mu_var(model, net_input)
+
+    
+    sigma = torch.sqrt(torch.clamp(var.view(-1), min=1e-12))  # (N,)
+
+    return sigma.detach().cpu().numpy()
 
 def mu_sigma_grad_nn_no_outlier(robot_xy, obstacle_points, model, device, K=100):
     robot_xy = robot_xy[:2]

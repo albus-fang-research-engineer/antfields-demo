@@ -49,7 +49,7 @@ def main():
     # model = md.Model(modelPath, 3, scale_factor, mode, renderer, device='cuda:0')
     # model.train()
     lengths = []
-    num_runs = 50
+    num_runs = 10
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")
 

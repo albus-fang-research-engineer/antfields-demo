@@ -779,7 +779,7 @@ class Model():
                     device=self.Params['Device']
                 )
 
-        if True:
+        if False:
             print("Exploration is done. Finetuning...")
             self.plot(self.cur_view, self.cur_view, self.epoch, total_diff.item(),self.alpha)
             #?: train for another 1000 epochs for finetuning

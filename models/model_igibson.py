@@ -578,7 +578,7 @@ class Model():
                 collision, idxs = check_collision_with_surface_points(
                     traj,
                     surface_points,
-                    robot_radius=0.00,
+                    robot_radius=0.0105,
                     safety_margin=0.002,
                     return_details=True
                 )
@@ -1196,7 +1196,7 @@ class Model():
 def check_collision_with_surface_points(
     traj,
     surface_points,
-    robot_radius=0.0,
+    robot_radius=0.0105,
     safety_margin=0.01,
     return_details=False
 ):

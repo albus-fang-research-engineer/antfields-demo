@@ -1,3 +1,4 @@
 *.npy
 *.pyc
 Experiments/
+lidar_points/

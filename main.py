@@ -49,11 +49,22 @@ def main():
     # model = md.Model(modelPath, 3, scale_factor, mode, renderer, device='cuda:0')
     # model.train()
     lengths = []
-    num_runs = 10
+    num_runs = 50
+    global_base = modelPath
+    import os
+    global_run_id = 0
+    while True:
+        global_folder = os.path.join(global_base, f"CHANCE_CONSTRAINED_GLOBAL_RUN_{global_run_id}")
+        if not os.path.exists(global_folder):
+            os.makedirs(global_folder)
+            break
+        global_run_id += 1
+
+    print(f"Global run folder: {global_folder}")
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")
 
-        model = md.Model(modelPath, 3, scale_factor, mode, renderer, device='cuda:0')
+        model = md.Model(global_folder, 3, scale_factor, mode, renderer, device='cuda:0')
         
         path_length = model.train()
 

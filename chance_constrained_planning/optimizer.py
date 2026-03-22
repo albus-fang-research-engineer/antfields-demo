@@ -28,8 +28,8 @@ def solve_step(p0, p_goal, obstacle_points, model, device, epoch, path_start, fo
         p0, obstacle_points, model, device
     )
     sigma_start= sigma_nn(path_start, obs_k, model, device)
-    print("sigma_virtual = ", sigma)
-    print("\n sigma_start = ", sigma_start)
+    # print("sigma_virtual = ", sigma)
+    # print("\n sigma_start = ", sigma_start)
     sigma = sigma_start
     print("\n--- Chance constraint debug ---")
     print("robot:", p0)

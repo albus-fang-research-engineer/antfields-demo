@@ -374,7 +374,19 @@ class Model():
         self.scale_factor = scale_factor
         current_time = datetime.utcnow()-timedelta(hours=4)
         self.folder = self.Params['ModelPath']+"/"+current_time.strftime("%m_%d_%H_%M")
-        self.folder = None
+        # self.folder = None
+        # ===== Find next available RUN_X folder =====
+        base_path = ModelPath
+        run_id = 0
+
+        while True:
+            run_folder = os.path.join(base_path, f"Chance_constrained_run_{run_id}")
+            if not os.path.exists(run_folder):
+                os.makedirs(run_folder)
+                break
+            run_id += 1
+
+        self.folder = run_folder
         # Pass the JSON information
         self.Params['Device'] = device
         self.Params['Pytorch Amp (bool)'] = False
@@ -665,10 +677,24 @@ class Model():
                         print("Reached goal! Stopping exploration.")
                         length = self.compute_path_length(self.trajectory)
                         print(f"Total traversed length: {length * self.scale_factor:.4f} m")
+                        # ===== SAVE FULL TRAJECTORY =====
+                        if self.trajectory is not None:
+                            base_name = "full_trajectory"
+                            i = 0
+                            while True:
+                                save_path = os.path.join(self.folder, f"{base_name}_{i}.npy")
+                                if not os.path.exists(save_path):
+                                    break
+                                i += 1
+                            np.save(save_path, self.trajectory)
+                            print(f"Saved full trajectory to: {save_path}")
                         return length
                         # break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
+                    # --- policy timing ---
+                    t0 = time.perf_counter()
                     traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0) 
+                    t1 = time.perf_counter()
                     # traj_list is the full gradient-descent trajectory from current position to the selected unexplored block. 
                     # traj_ind is the index along the trajectory where accumulated path length ≈ 0.05 meters.
                     nbv = Tensor(traj_list[traj_ind])
@@ -676,15 +702,15 @@ class Model():
 
                 # print("*"*10)
                 # print("self.dataset.Ts[0][:3, 3]/self.scale_factor", self.dataset.Ts[0][:3, 3]/self.scale_factor)
-                print("nbv", nbv)
-                print("curview", self.cur_view)
+                # print("nbv", nbv)
+                # print("curview", self.cur_view)
                 # traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy()) # small incremental motion
                
 
                 # Optimize the full trajectory
                 start = traj_list[0]
                 path = traj_list[1:]
-
+                t2 = time.perf_counter()
                 optimized_traj_list = rollout_optimized(
                     start,
                     path,
@@ -695,6 +721,15 @@ class Model():
                     epoch = self.epoch,
                     folder=self.folder
                 )
+                t3 = time.perf_counter()
+                # --- compute durations ---
+                policy_time = t1 - t0
+                optimizer_time = t3 - t2
+                total_time = (t1 - t0) + (t3 - t2)
+
+                print(f"Policy time: {policy_time:.4f}s")
+                print(f"Optimizer time: {optimizer_time:.4f}s")
+                print(f"Total planning time: {total_time:.4f}s")
                 optimized_traj_list = [
                     p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p)
                     for p in optimized_traj_list
@@ -723,7 +758,7 @@ class Model():
                         [self.all_optimized_segments, optimized_segment_np],
                         axis=0
                     )
-                if self.mode == EXPLORATION:
+                if self.mode == EXPLORATION and self.folder is not None:
                     traj = traj_list[:traj_ind+1]
                     plot_traj_difference(
                         self.folder,
@@ -749,7 +784,7 @@ class Model():
                 
                 
                 #? ******************SAVINGS start*******************
-                save_traj = False
+                save_traj = True
                 if save_traj:
                     np.save(self.folder+"/traj"+"_"+str(self.epoch)+".npy", self.trajectory)
 

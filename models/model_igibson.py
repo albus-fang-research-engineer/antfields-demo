@@ -748,7 +748,7 @@ class Model():
                 
                 
                 #? ******************SAVINGS start*******************
-                save_traj = False 
+                save_traj = True
                 if save_traj:
                     np.save(self.folder+"/traj"+"_"+str(self.epoch)+".npy", self.trajectory)
 

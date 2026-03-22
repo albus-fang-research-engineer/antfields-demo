@@ -155,6 +155,10 @@ def get_current_lidar_frame(renderer, camera_position, hidden_instance=[]) -> np
         dist = np.linalg.norm(lidar_readings, axis=1)
         # print("lidar reading shape 2",lidar_readings.shape)
         lidar_readings = lidar_readings[dist > 0]
+
+        
+
+
         lidar_readings[:, 2] = -lidar_readings[:, 2]  # make z pointing out
         # print("lidar reading shape 3",lidar_readings.shape)
         return lidar_readings

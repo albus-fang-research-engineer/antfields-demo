@@ -190,7 +190,7 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
     minimum *= scale_factor
     maximum *= scale_factor
 
-    valid_indices = torch.where((bounds < maximum) & (bounds > minimum))[0] 
+    valid_indices = torch.where((bounds < maximum+0.012) & (bounds > minimum-0.002))[0] 
 
     x0 = points[valid_indices]
     y0 = torch.clip(bounds[valid_indices], minimum, maximum)/maximum
@@ -235,7 +235,7 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
     # print(bounds)
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
-    return points[0:2500], speeds[0:2500], bounds[0:2500], surface_points[:2500]
+    return points[0:3000], speeds[0:3000], bounds[0:3000], surface_points[:3000]
 
 def sample_points_from_pos(model, position, scale_factor=1):
     """
@@ -300,7 +300,6 @@ def get_bounds_from_pts(sample_pts):
     # print("surf_pc", sample_pts["surf_pc"])
     dists = diff.norm(dim=-1)
     dists, closest_ixs = dists.min(axis=-1)
-    dists -= 0.0105
     behind_surf = sample_pts["z_vals"] > sample_pts["depth_sample"][:, None]
     dists[behind_surf] *= -1
 
@@ -323,8 +322,8 @@ def get_bounds_from_pts(sample_pts):
     filtered_bounds = torch.cat([ray_bounds for ray_bounds in filtered_bounds_list if ray_bounds.nelement() > 0], dim=0)
 
     # dists -= 0
-    # filtered_bounds -= 0.02 #! subtract some value to make the bounds smaller
-    filtered_bounds -= 0.0000001 #Minkowski sum inflation
+    filtered_bounds -= 0.0105 #! subtract some value to make the bounds smaller
+    # filtered_bounds -= 0.0000001 
     #? add a ceiling and floor to the bounds
     # dist_ceil = torch.abs(sample_pts["pc"][:, :, 2]-2.3)
     # dist_floor = torch.abs(sample_pts["pc"][:, :, 2]+0.02)

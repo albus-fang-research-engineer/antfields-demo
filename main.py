@@ -46,8 +46,28 @@ def main():
         renderer.set_fov(90)
 
     # Initialize and train the model
-    model = md.Model(modelPath, 3, scale_factor, mode, renderer, device='cuda:0')
-    model.train()
+    # model = md.Model(modelPath, 3, scale_factor, mode, renderer, device='cuda:0')
+    # model.train()
+    lengths = []
+    num_runs = 10
+    for i in range(num_runs):
+        print(f"\n===== Run {i+1}/{num_runs} =====")
+
+        model = md.Model(modelPath, 3, scale_factor, mode, renderer, device='cuda:0')
+        
+        path_length = model.train()
+
+        if path_length is not None:
+            lengths.append(path_length)
+        else:
+            print("Warning: run did not reach goal")
+
+    lengths = np.array(lengths)
+
+    print("\n===== FINAL RESULTS =====")
+    print(f"Runs completed: {len(lengths)}")
+    print(f"Mean path length: {np.mean(lengths) * 10:.4f} m")
+    print(f"Std: {np.std(lengths)*10:.4f} m")
 
 if __name__ == '__main__':
     main()

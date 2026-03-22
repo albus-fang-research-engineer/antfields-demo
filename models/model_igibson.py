@@ -374,7 +374,7 @@ class Model():
         self.scale_factor = scale_factor
         current_time = datetime.utcnow()-timedelta(hours=4)
         self.folder = self.Params['ModelPath']+"/"+current_time.strftime("%m_%d_%H_%M")
-
+        self.folder = None
         # Pass the JSON information
         self.Params['Device'] = device
         self.Params['Pytorch Amp (bool)'] = False
@@ -434,7 +434,7 @@ class Model():
 
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
-    
+        self.enable_plot = False
     def gradient(self, y, x, create_graph=True):                                                               
                                                                                   
         grad_y = torch.ones_like(y)                                                                 
@@ -594,7 +594,7 @@ class Model():
         return cur_data
 
     def train(self):
-        if not os.path.exists(self.folder):
+        if self.folder is not None and not os.path.exists(self.folder):
             os.makedirs(self.folder)
 
         self.load_rawdata()
@@ -665,7 +665,8 @@ class Model():
                         print("Reached goal! Stopping exploration.")
                         length = self.compute_path_length(self.trajectory)
                         print(f"Total traversed length: {length * self.scale_factor:.4f} m")
-                        break
+                        return length
+                        # break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
                     traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0) 
                     # traj_list is the full gradient-descent trajectory from current position to the selected unexplored block. 
@@ -755,7 +756,8 @@ class Model():
 
                 
                 camera_matrix = None
-                self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list, obstacle_points)
+                if self.enable_plot:
+                    self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list, obstacle_points)
                 
             elif self.mode == READ_FROM_COOKED_DATA:
                 self.plot(self.initial_view, np.array([0.3, 0.2, 0]), self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), None)
@@ -814,6 +816,7 @@ class Model():
             with torch.no_grad():
                 self.save(epoch=self.epoch, val_loss=total_diff)
 
+        return None
     def train_core(self, epoch, frame_data, is_one_frame=True):
         beta = 1.0
         prev_diff = 1.0

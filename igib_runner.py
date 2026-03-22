@@ -487,7 +487,7 @@ def sample_points_from_pos(model, position, scale_factor=1):
 
         #TODO: save depth_dirs, depth, T_np, and current position to a dictionary
         frame_idx = model.frame_idx
-        savepath = model.folder+"/frame_"+str(frame_idx)+".npy"
+        # savepath = model.folder+"/frame_"+str(frame_idx)+".npy"
         sub_dataset = {}
         sub_dataset["depth_dirs"] = depth_dirs
         sub_dataset["depth"] = depth

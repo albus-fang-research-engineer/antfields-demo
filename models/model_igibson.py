@@ -749,7 +749,7 @@ class Model():
                 
                 
                 #? ******************SAVINGS start*******************
-                save_traj = True
+                save_traj = False
                 if save_traj:
                     np.save(self.folder+"/traj"+"_"+str(self.epoch)+".npy", self.trajectory)
 
@@ -765,7 +765,8 @@ class Model():
             
             # self.fourplot(epoch, FRAMES[:frame_idx+1], total_diff.item(), alpha)
             with torch.no_grad():
-                self.save(epoch=self.epoch, val_loss=total_diff)
+                if self.folder is not None:
+                    self.save(epoch=self.epoch, val_loss=total_diff)
 
             #? ******************SAVINGS end*******************
             
@@ -831,7 +832,8 @@ class Model():
             else:
                 self.all_framedata = torch.cat((self.all_framedata, frame_data.unsqueeze(0)), dim=0)
             print(self.all_framedata.shape)
-            np.save(f"{self.folder}/explored_data.npy", self.all_framedata.clone().cpu().numpy())
+            if self.folder is not None:
+                np.save(f"{self.folder}/explored_data.npy", self.all_framedata.clone().cpu().numpy())
 
 
         #! mix data so that the start and end points are from different frames

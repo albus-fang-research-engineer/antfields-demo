@@ -273,7 +273,19 @@ class Model():
         self.scale_factor = scale_factor
         current_time = datetime.utcnow()-timedelta(hours=4)
         self.folder = self.Params['ModelPath']+"/"+current_time.strftime("%m_%d_%H_%M")
-        self.folder = None
+        # ===== CREATE RUN FOLDER INSIDE GLOBAL =====
+        base_path = ModelPath  # now this is GLOBAL_RUN_X
+
+        run_id = 0
+        while True:
+            run_folder = os.path.join(base_path, f"RUN_{run_id}")
+            if not os.path.exists(run_folder):
+                os.makedirs(run_folder)
+                break
+            run_id += 1
+
+        self.folder = run_folder
+        # self.folder = None
         # Pass the JSON information
         self.Params['Device'] = device
         self.Params['Pytorch Amp (bool)'] = False
@@ -555,8 +567,15 @@ class Model():
                         print("Reached goal! Stopping exploration.")
                         length = self.compute_path_length(self.trajectory)
                         print(f"Total traversed length: {length * self.scale_factor:.4f} m")
+                        if self.trajectory is not None:
+                            save_path = os.path.join(self.folder, "full_trajectory.npy")
+                            np.save(save_path, self.trajectory)
+                            print(f"Saved full trajectory to: {save_path}")
                         # break
-                        return length
+                        return {
+                            "length": length,
+                            "collision": False
+                        }
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0)
                     traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0)
                     nbv = Tensor(traj_list[traj_ind])
@@ -579,15 +598,18 @@ class Model():
                     traj,
                     surface_points,
                     robot_radius=0.0105,
-                    safety_margin=0.002,
+                    safety_margin=0.0005,
                     return_details=True
                 )
 
                 if collision:
                     print(f"⚠️ Collision detected in executed trajectory at indices: {idxs}")
-                    save_path = f"collision_traj_step_{self.frame_idx}.npy"
+                    save_path = os.path.join(self.folder, f"collision_traj_step_{self.frame_idx}.npy")
                     np.save(save_path, np.array(self.trajectory))
-
+                    return {
+                        "length": None,
+                        "collision": True
+                    }
 
                 #? ******************SAVINGS start*******************
                 save_traj = False 
@@ -651,7 +673,10 @@ class Model():
             self.plot(self.cur_view, self.cur_view, self.epoch, total_diff.item(),self.alpha)
             with torch.no_grad():
                 self.save(epoch=self.epoch, val_loss=total_diff)
-        return None
+        return {
+            "length": None,
+            "collision": False
+        }
     def train_core(self, epoch, frame_data, is_one_frame=True):
         beta = 1.0
         prev_diff = 1.0

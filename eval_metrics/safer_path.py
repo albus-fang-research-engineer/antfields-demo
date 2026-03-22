@@ -7,7 +7,7 @@ MESH_PATH = "/antfields/data/mesh.obj"
 
 NPY_OPT_PATH = "/antfields/Experiments/03_18_12_10/epoch_2100_optimized.npy"
 NPY_NOM_PATH = "/antfields/Experiments/03_18_12_10/epoch_2100_nominal.npy"
-NPY_NOM_PATH = "/antfields/collision_traj_step_3.npy"
+NPY_NOM_PATH = "/antfields/Experiments/BASELINE_GLOBAL_RUN_0/RUN_1/collision_traj_step_3.npy"
 
 def load_waypoints(path):
     if not os.path.exists(path):
@@ -93,7 +93,7 @@ def main():
     print(f"[INFO] Nominal shape: {wp_nom.shape}")
 
 
-    robot_pose = wp_nom[-4]
+    robot_pose = wp_nom[-5]
 
     black_sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.0105)
     black_sphere.paint_uniform_color([0, 0, 0])

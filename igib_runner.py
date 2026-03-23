@@ -235,7 +235,7 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
     # print(bounds)
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
-    return points[0:3000], speeds[0:3000], bounds[0:3000], surface_points[:3000]
+    return points[0:4000], speeds[0:4000], bounds[0:4000], surface_points[:4000]
 
 def sample_points_from_pos(model, position, scale_factor=1):
     """

@@ -106,7 +106,7 @@ def main():
     # # 🟠 Nominal
     # nom_lines = create_lineset(wp_nom, [1, 0.5, 0])
     opt_meshes = create_tube(wp_opt, radius=0.003, color=[0, 0, 1])
-    nom_meshes = create_tube(wp_nom, radius=0.002, color=[1, 0.5, 0])
+    nom_meshes = create_tube(wp_nom[:-7], radius=0.002, color=[1, 0.5, 0])
     o3d.visualization.draw_geometries(
         [mesh, black_sphere] + nom_meshes + opt_meshes
     )

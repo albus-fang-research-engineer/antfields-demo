@@ -1583,3 +1583,47 @@ class Model():
         diffs = path[1:, :2] - path[:-1, :2]
         dists = np.linalg.norm(diffs, axis=1)
         return np.sum(dists)
+    
+    def check_collision_with_surface_points(
+        traj,
+        surface_points,
+        robot_radius=0.0105,
+        safety_margin=0.01,
+        return_details=False
+    ):
+        """
+        Check if trajectory collides with obstacles using surface points.
+
+        Args:
+            traj: (N, 3) trajectory
+            surface_points: (M, 3) obstacle surface points
+            robot_radius: robot size
+            safety_margin: extra buffer
+            return_details: if True, return collision indices
+
+        Returns:
+            collision (bool)
+            optional: collision indices
+        """
+
+        traj = np.asarray(traj)
+        surface_points = surface_points.detach().cpu().numpy()
+        surface_points = np.asarray(surface_points)
+
+        thresh = robot_radius + safety_margin
+
+        collision_indices = []
+
+        for i, p in enumerate(traj):
+            # 2D distance (since planner is planar)
+            dists = np.linalg.norm(surface_points[:, :2] - p[:2], axis=1)
+
+            if np.any(dists < thresh):
+                collision_indices.append(i)
+
+        collision = len(collision_indices) > 0
+
+        if return_details:
+            return collision, collision_indices
+
+        return collision

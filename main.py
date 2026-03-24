@@ -48,30 +48,41 @@ def main():
     # Initialize and train the model
     # model = md.Model(modelPath, 3, scale_factor, mode, renderer, device='cuda:0')
     # model.train()
-    lengths = []
-    num_runs = 50
     global_base = modelPath
     import os
+
+    # ===== CREATE GLOBAL RUN FOLDER =====
+    global_base = modelPath
+
     global_run_id = 0
     while True:
-        global_folder = os.path.join(global_base, f"CHANCE_CONSTRAINED_GLOBAL_RUN_{global_run_id}")
+        global_folder = os.path.join(global_base, f"BASELINE_GLOBAL_RUN_{global_run_id}")
         if not os.path.exists(global_folder):
             os.makedirs(global_folder)
             break
         global_run_id += 1
 
     print(f"Global run folder: {global_folder}")
+    lengths = []
+    num_runs = 100
+    collisions = 0
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")
 
         model = md.Model(global_folder, 3, scale_factor, mode, renderer, device='cuda:0')
         
-        path_length = model.train()
-
-        if path_length is not None:
-            lengths.append(path_length)
+        result = model.train()
+        if result["collision"]:
+            collisions += 1
+            print("Run ended with collision")
+        elif result["length"] is not None:
+            lengths.append(result["length"])
         else:
             print("Warning: run did not reach goal")
+        # if path_length is not None:
+        #     lengths.append(path_length)
+        # else:
+        #     print("Warning: run did not reach goal")
 
     lengths = np.array(lengths)
 
@@ -79,6 +90,7 @@ def main():
     print(f"Runs completed: {len(lengths)}")
     print(f"Mean path length: {np.mean(lengths) * 10:.4f} m")
     print(f"Std: {np.std(lengths)*10:.4f} m")
+    print(f"Collision rate: {collisions / num_runs:.2f}")
 
 if __name__ == '__main__':
     main()

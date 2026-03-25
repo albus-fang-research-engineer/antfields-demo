@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 NPY_PATH = "/antfields/Experiments/03_18_12_10/epoch_1250_optimized.npy"
-NPY_PATH = "/antfields/Experiments/03_18_09_59/epoch_0700_optimized.npy"
+NPY_PATH = "/antfields/Experiments/03_18_09_59/epoch_1750_optimized.npy"
 
 def print_waypoints():
     if not os.path.exists(NPY_PATH):

@@ -443,10 +443,10 @@ class Model():
         # ===== Fixed experiment setup =====
         # self.fixed_start = torch.tensor([-0.3, -0.2, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
-
+        self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
-        self.enable_plot = False
+        self.enable_plot = True
     def gradient(self, y, x, create_graph=True):                                                               
                                                                                   
         grad_y = torch.ones_like(y)                                                                 
@@ -557,6 +557,7 @@ class Model():
     def load_rawdata(self):
         #! load data
         initial_view = Tensor([-0.12, -0.046, 0])
+        initial_view = Tensor([ 0.04337262,  -0.02060163, 0.0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file
@@ -688,7 +689,10 @@ class Model():
                                 i += 1
                             np.save(save_path, self.trajectory)
                             print(f"Saved full trajectory to: {save_path}")
-                        return length
+                            return {
+                                "length": length,
+                                "collision": False
+                            }
                         # break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
                     # --- policy timing ---
@@ -781,7 +785,24 @@ class Model():
                 else:
                     self.trajectory = np.concatenate([self.trajectory, segment_np[1:]], axis=0)
                 # print("traj is:", traj)
-                
+                collision, idxs = check_collision_with_surface_points(
+                    segment_np,
+                    obstacle_points,
+                    robot_radius=0.0105,
+                    safety_margin=0.00001,
+                    return_details=True
+                )
+
+                if collision:
+                    print(f"⚠️ Collision detected at indices: {idxs}")
+
+                    save_path = os.path.join(self.folder, f"collision_traj_step_{self.frame_idx}.npy")
+                    np.save(save_path, self.trajectory)
+
+                    return {
+                        "length": None,
+                        "collision": True
+                    }
                 
                 #? ******************SAVINGS start*******************
                 save_traj = True

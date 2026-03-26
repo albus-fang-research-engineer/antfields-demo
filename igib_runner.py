@@ -190,7 +190,7 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
     minimum *= scale_factor
     maximum *= scale_factor
 
-    valid_indices = torch.where((bounds < maximum+0.012) & (bounds > minimum-0.002))[0] 
+    valid_indices = torch.where((bounds < maximum) & (bounds > minimum))[0] 
 
     x0 = points[valid_indices]
     y0 = torch.clip(bounds[valid_indices], minimum, maximum)/maximum

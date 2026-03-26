@@ -444,7 +444,7 @@ class Model():
         # self.fixed_start = torch.tensor([-0.3, -0.2, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
         self.enable_plot = True
@@ -558,8 +558,8 @@ class Model():
     def load_rawdata(self):
         #! load data
         initial_view = Tensor([-0.12, -0.046, 0])
-        initial_view = Tensor([ 0.04337262,  -0.02060163, 0.0])
-        initial_view = Tensor([0.3931667,  0.15998743, 0.0])
+        initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
+        # initial_view = Tensor([0.3931667,  0.15998743, 0.0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file

@@ -55,7 +55,7 @@ def main():
 
     global_run_id = 0
     while True:
-        global_folder = os.path.join(global_base, f"TUNED_BASELINE_GLOBAL_RUN_{global_run_id}")
+        global_folder = os.path.join(global_base, f"Default_BASELINE_GLOBAL_RUN_{global_run_id}")
         if not os.path.exists(global_folder):
             os.makedirs(global_folder)
             break

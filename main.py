@@ -55,7 +55,7 @@ def main():
 
     global_run_id = 0
     while True:
-        global_folder = os.path.join(global_base, f"BASELINE_GLOBAL_RUN_{global_run_id}")
+        global_folder = os.path.join(global_base, f"TUNED_BASELINE_GLOBAL_RUN_{global_run_id}")
         if not os.path.exists(global_folder):
             os.makedirs(global_folder)
             break
@@ -63,7 +63,7 @@ def main():
 
     print(f"Global run folder: {global_folder}")
     lengths = []
-    num_runs = 100
+    num_runs = 80
     collisions = 0
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")

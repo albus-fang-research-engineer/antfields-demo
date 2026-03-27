@@ -325,7 +325,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.016  #0.1
+        self.maximum = 0.02  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []

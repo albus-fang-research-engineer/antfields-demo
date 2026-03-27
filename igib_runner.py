@@ -241,10 +241,10 @@ def sample_points_from_pos(model, position, scale_factor=1):
     """
     configs
     """
-    n_rays = 8000 #5000
+    n_rays = 5000 #5000
     dist_behind_surf = 0. #0.2
-    n_strat_samples = 22 #20
-    n_surf_samples = 12 #8
+    n_strat_samples = 20 #20
+    n_surf_samples = 8 #8
     min_depth = 0.01
     max_depth = 0.25
     dist_behind_surf *= scale_factor
@@ -322,7 +322,7 @@ def get_bounds_from_pts(sample_pts):
     filtered_bounds = torch.cat([ray_bounds for ray_bounds in filtered_bounds_list if ray_bounds.nelement() > 0], dim=0)
 
     # dists -= 0
-    filtered_bounds -= 0.0105 #! subtract some value to make the bounds smaller
+    filtered_bounds -= 0.0155 #! subtract some value to make the bounds smaller
     # filtered_bounds -= 0.0000001 
     #? add a ceiling and floor to the bounds
     # dist_ceil = torch.abs(sample_pts["pc"][:, :, 2]-2.3)

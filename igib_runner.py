@@ -190,7 +190,7 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
     minimum *= scale_factor
     maximum *= scale_factor
 
-    valid_indices = torch.where((bounds < maximum+0.012) & (bounds > minimum-0.002))[0] 
+    valid_indices = torch.where((bounds < maximum) & (bounds > minimum))[0] 
 
     x0 = points[valid_indices]
     y0 = torch.clip(bounds[valid_indices], minimum, maximum)/maximum
@@ -235,16 +235,16 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
     # print(bounds)
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
-    return points[0:4000], speeds[0:4000], bounds[0:4000], surface_points[:4000]
+    return points[0:5000], speeds[0:5000], bounds[0:5000], surface_points[:5000]
 
 def sample_points_from_pos(model, position, scale_factor=1):
     """
     configs
     """
-    n_rays = 5000
+    n_rays = 8000 #5000
     dist_behind_surf = 0. #0.2
-    n_strat_samples = 20
-    n_surf_samples = 8
+    n_strat_samples = 22 #20
+    n_surf_samples = 12 #8
     min_depth = 0.01
     max_depth = 0.25
     dist_behind_surf *= scale_factor

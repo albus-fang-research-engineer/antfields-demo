@@ -63,7 +63,7 @@ def main():
 
     print(f"Global run folder: {global_folder}")
     lengths = []
-    num_runs = 80
+    num_runs = 100
     collisions = 0
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")

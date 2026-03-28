@@ -325,15 +325,16 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.02  #0.1
+        self.maximum = 0.021  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
 
         self.init_network()
         
-        self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([ 0.05,  -0.076, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0] , dtype=torch.float32)
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
         self.enable_plot = True
@@ -448,6 +449,7 @@ class Model():
         #! load data
         initial_view = Tensor([-0.12, -0.046, 0])
         initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
+        initial_view = Tensor([0.3931667,  0.15998743, 0.0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file

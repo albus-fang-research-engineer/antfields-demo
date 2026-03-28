@@ -241,7 +241,7 @@ def sample_points_from_pos(model, position, scale_factor=1):
     """
     configs
     """
-    n_rays = 5000 #5000
+    n_rays = 8000 #5000
     dist_behind_surf = 0. #0.2
     n_strat_samples = 20 #20
     n_surf_samples = 8 #8
@@ -305,7 +305,7 @@ def get_bounds_from_pts(sample_pts):
 
     #!: sample pts include pc, z_vals, surf_pc, depth_sample. If bounds is smaller than some threshold, then the ray samples following this point will not be used.
     # valid_threshold = 0.05
-    valid_threshold = 0.0002
+    valid_threshold = 0.002
     filtered_pc_list = []
     filtered_bounds_list = []
     for i in range(dists.shape[0]):

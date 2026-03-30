@@ -325,7 +325,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.021  #0.1
+        self.maximum = 0.036  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -447,9 +447,10 @@ class Model():
 
     def load_rawdata(self):
         #! load data
+        # startpoint
         initial_view = Tensor([-0.12, -0.046, 0])
         initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
-        initial_view = Tensor([0.3931667,  0.15998743, 0.0])
+        initial_view = Tensor([0.36,  0.151, 0.0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file

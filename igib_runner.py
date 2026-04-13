@@ -435,7 +435,7 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
     # return points[0:5000], speeds[0:5000], bounds[0:5000], obstacle_points
-    return points[0:2200], speeds[0:2200], bounds[0:2200], obstacle_points
+    return points[0:5000], speeds[0:5000], bounds[0:5000], obstacle_points
 
 def sample_points_from_pos(model, position, scale_factor=1):
     """
@@ -504,7 +504,7 @@ def get_bounds_from_pts(sample_pts):
     dists[behind_surf] *= -1
 
     #!: sample pts include pc, z_vals, surf_pc, depth_sample. If bounds is smaller than some threshold, then the ray samples following this point will not be used.
-    valid_threshold = 0.002
+    valid_threshold = 0.05
     filtered_pc_list = []
     filtered_bounds_list = []
     for i in range(dists.shape[0]):
@@ -522,7 +522,7 @@ def get_bounds_from_pts(sample_pts):
 
     # dists -= 0
     # filtered_bounds -= 0.02 #! subtract some value to make the bounds smaller
-    filtered_bounds -= 0.00001
+    filtered_bounds -= 0.02
     #? add a ceiling and floor to the bounds
     # dist_ceil = torch.abs(sample_pts["pc"][:, :, 2]-2.3)
     # dist_floor = torch.abs(sample_pts["pc"][:, :, 2]+0.02)

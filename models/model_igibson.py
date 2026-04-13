@@ -372,7 +372,7 @@ class Model():
         self.renderer = renderer
         self.dim = dim
         self.scale_factor = scale_factor
-        current_time = datetime.utcnow()-timedelta(hours=5)
+        current_time = datetime.utcnow()-timedelta(hours=4)
         self.folder = self.Params['ModelPath']+"/"+current_time.strftime("%m_%d_%H_%M")
 
         # Pass the JSON information
@@ -416,7 +416,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.026  #0.1
+        self.maximum = 0.036  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []

@@ -439,13 +439,13 @@ class Model():
         # keep everything on the same device as the PINN
         self.dist_model = self.dist_model.to(self.Params['Device'])
         self.dist_device = self.Params['Device']
-
+        self.currently_traversed = None
         # ===== Fixed experiment setup =====
         # self.fixed_start = torch.tensor([-0.3, -0.2, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
         self.enable_plot = True
@@ -559,9 +559,9 @@ class Model():
     def load_rawdata(self):
         #! load data
         initial_view = Tensor([-0.12, -0.046, 0])
-        initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
-        initial_view = Tensor([0.36,  0.151, 0.0])
-        initial_view = Tensor([-0.05526768, -0.00738018, 0.0])
+        # initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
+        # initial_view = Tensor([0.36,  0.151, 0.0])
+        # initial_view = Tensor([-0.05526768, -0.00738018, 0.0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file
@@ -761,7 +761,7 @@ class Model():
                         p.detach().cpu().numpy() if torch.is_tensor(p) else p
                         for p in optimized_segment
                     ])
-
+                    self.currently_traversed = self.all_optimized_segments.copy()
                     self.all_optimized_segments = np.concatenate(
                         [self.all_optimized_segments, optimized_segment_np],
                         axis=0
@@ -1160,6 +1160,7 @@ class Model():
 
 
     def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None, obstacle_points=None):
+        # obstacle_points = None
         limit = 1
         xmin = [-0.5, -0.5]
         xmax = [0.5, 0.5]
@@ -1219,18 +1220,60 @@ class Model():
             ax.fill(camera_x, camera_y, 'b')
 
         src_np = src if isinstance(src, np.ndarray) else src.cpu().numpy()
+        tar_np = tar if isinstance(self.fixed_goal, np.ndarray) else self.fixed_goal.cpu().numpy()
+        # ---- Zoom based on start + goal ONLY ----
+        pts = np.vstack((src_np[:2], tar_np[:2]))
 
-        robot_circle = plt.Circle(
-            (src_np[0], src_np[1]),
-            0.105/10,
-            fill=False,
-            edgecolor='red',
-            linewidth=2,
-            zorder=10
+        padding = 0.1  # adjust if needed
+        xmin = np.min(pts[:, 0]) - padding
+        xmax = np.max(pts[:, 0]) + padding
+        ymin = np.min(pts[:, 1]) - padding
+        ymax = np.max(pts[:, 1]) + padding
+
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+        ax.set_aspect('equal')
+        # robot_circle = plt.Circle(
+        #     (src_np[0], src_np[1]),
+        #     0.105/10,
+        #     fill=False,
+        #     edgecolor='green',
+        #     linewidth=2,
+        #     label='start point',
+        #     zorder=10
+        # )
+        # ax.add_patch(robot_circle)
+
+        # ax.scatter(src_np[0], src_np[1], color='red', s=20, zorder=11)
+        cur_np = self.cur_view.detach().cpu().numpy()
+        ax.scatter(
+            src_np[0],
+            src_np[1],
+            color='cyan',        # high contrast vs green background
+            s=40,
+            marker='o',
+            edgecolor='black',
+            linewidth=0.5,
+            label='start',
+            zorder=12
         )
-        ax.add_patch(robot_circle)
-
-        ax.scatter(src_np[0], src_np[1], color='red', s=20, zorder=11)
+        ax.scatter(
+            cur_np[0],
+            cur_np[1],
+            color='black',
+            s=20,
+            label='robot',
+            zorder=11
+        )
+        ax.scatter(
+            tar_np[0],
+            tar_np[1],
+            color='magenta',
+            s=60,
+            marker='*',
+            label='goal',
+            zorder=12
+        )
         #! plot trajectory
         if traj_list is not None:
             ax.plot(traj_list[:, 0], traj_list[:, 1], color='pink', marker = 'o', markersize=0.8, linestyle='-')
@@ -1239,11 +1282,13 @@ class Model():
             plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
 
             #? plot trajectory with step size
-            ax.plot(self.trajectory[:, 0], self.trajectory[:, 1], color='red', marker='o', markersize=0.8, linestyle='-', linewidth=1)
+            # ax.plot(self.trajectory[:, 0], self.trajectory[:, 1], color='red', marker='o', markersize=0.8, linestyle='-', linewidth=1)
 
         # plot optimized segments (blue)
-        if self.all_optimized_segments is not None:
-            seg = self.all_optimized_segments
+        # if self.all_optimized_segments is not None:
+        #     seg = self.all_optimized_segments[:-1]
+        if self.currently_traversed is not None:
+            seg = self.currently_traversed[:-1]
             if isinstance(seg, torch.Tensor):
                 seg = seg.detach().cpu().numpy()
             if isinstance(seg, list):
@@ -1256,10 +1301,12 @@ class Model():
         if obstacle_points is not None:
             if torch.is_tensor(obstacle_points):
                 obstacle_points = obstacle_points.detach().cpu().numpy()
-            ax.scatter(obstacle_points[:, 0], obstacle_points[:, 1], c='red', s=3, alpha=1.0, label="surface points", zorder=10)
-
+            ax.scatter(obstacle_points[:, 0], obstacle_points[:, 1], c='red', s=0.5, alpha=0.5, label="surface points", zorder=10)
+        
         ax.contour(X,Y,TT,np.arange(0,5,0.02), cmap='bone', linewidths=0.3)#0.25
         plt.colorbar(quad1,ax=ax, pad=0.1, label='Predicted Velocity')
+        ax.set_title(f"Online Planning Step {epoch}", fontsize=11)
+        ax.legend(loc='upper right', fontsize=8)
         plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
 
         plt.close(fig)

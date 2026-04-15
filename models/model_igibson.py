@@ -417,7 +417,7 @@ class Model():
         self.prev_state_queue = []
         self.prev_optimizer_queue = []
         self.timer = []
-
+        self.prev_positions = []
         # # Parameters for the occupancy grid
         dim_cells = 100
         limit = 1.05
@@ -609,7 +609,16 @@ class Model():
 
         cur_data = torch.cat((all_points, all_speeds), dim=1)
         return cur_data
+    def is_stuck(self, threshold=0.008):
+        if len(self.prev_positions) < 10:
+            return False
 
+        start = self.prev_positions[0]
+        end   = self.prev_positions[-1]
+
+        movement = np.linalg.norm(end[:2] - start[:2])
+
+        return movement < threshold
     def train(self):
         if self.folder is not None and not os.path.exists(self.folder):
             os.makedirs(self.folder)
@@ -678,7 +687,7 @@ class Model():
                     # if coverage > 0.543:
                     #     # pass
                     #     break
-                    if self.reached_goal(self.cur_view):
+                    if self.reached_goal(self.cur_view) or self.is_stuck():
                         print("Reached goal! Stopping exploration.")
                         length = self.compute_path_length(self.trajectory)
                         print(f"Total traversed length: {length * self.scale_factor:.4f} m")
@@ -693,6 +702,20 @@ class Model():
                                 i += 1
                             np.save(save_path, self.trajectory)
                             print(f"Saved full trajectory to: {save_path}")
+                            if self.enable_plot:
+                                self.plot(
+                                    self.initial_view,                 # start
+                                    self.fixed_goal,                   # goal
+                                    self.epoch,
+                                    total_diff.item(),
+                                    self.alpha,
+                                    cur_data[:,:6].clone().cpu().numpy(),
+                                    None,
+                                    None,
+                                    obstacle_points,
+                                    None, #np.array(self.all_optimized_trajectories) if self.all_optimized_trajectories is not None else None,
+                                    final=True
+                                )
                             return {
                                 "length": length,
                                 "collision": False
@@ -817,7 +840,7 @@ class Model():
                 
                 camera_matrix = None
                 if self.enable_plot:
-                    self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list, obstacle_points)
+                    self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list, obstacle_points, np.array(optimized_traj_list))
                 
             elif self.mode == READ_FROM_COOKED_DATA:
                 self.plot(self.initial_view, np.array([0.3, 0.2, 0]), self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), None)
@@ -841,7 +864,10 @@ class Model():
                     dtype=torch.float32,
                     device=self.Params['Device']
                 )
+                self.prev_positions.append(self.cur_view.detach().cpu().numpy())
 
+                if len(self.prev_positions) > 10:
+                    self.prev_positions.pop(0)
         if False:
             print("Exploration is done. Finetuning...")
             self.plot(self.cur_view, self.cur_view, self.epoch, total_diff.item(),self.alpha)
@@ -1159,12 +1185,12 @@ class Model():
         return Ypred
 
 
-    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None, obstacle_points=None):
+    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None, obstacle_points=None, optimized_path=None, final=False):
         # obstacle_points = None
         limit = 1
         xmin = [-0.5, -0.5]
         xmax = [0.5, 0.5]
-        spacing=limit/80.0
+        spacing=limit/180.0
         X,Y      = np.meshgrid(np.arange(xmin[0],xmax[0],spacing),np.arange(xmin[1],xmax[1],spacing))
 
         Xsrc = src 
@@ -1186,7 +1212,13 @@ class Model():
         TT = tt.to('cpu').data.numpy().reshape(X.shape)
         V  = ss.to('cpu').data.numpy().reshape(X.shape)
         TAU = tau.to('cpu').data.numpy().reshape(X.shape)
-
+        np.savez(
+            self.folder + f"/field_epoch_{epoch}.npz",
+            X=X,
+            Y=Y,
+            speed=V,
+            travel_time=TT
+        )
         fig = plt.figure()
 
         ax = fig.add_subplot(111)
@@ -1227,7 +1259,7 @@ class Model():
         padding = 0.1  # adjust if needed
         xmin = np.min(pts[:, 0]) - padding
         xmax = np.max(pts[:, 0]) + padding
-        ymin = np.min(pts[:, 1]) - padding
+        ymin = np.min(pts[:, 1]) - padding + 0.02
         ymax = np.max(pts[:, 1]) + padding
 
         ax.set_xlim(xmin, xmax)
@@ -1246,6 +1278,8 @@ class Model():
 
         # ax.scatter(src_np[0], src_np[1], color='red', s=20, zorder=11)
         cur_np = self.cur_view.detach().cpu().numpy()
+        if final is True:
+            cur_np = tar_np
         ax.scatter(
             src_np[0],
             src_np[1],
@@ -1257,11 +1291,12 @@ class Model():
             label='start',
             zorder=12
         )
+        
         ax.scatter(
             cur_np[0],
             cur_np[1],
             color='black',
-            s=20,
+            s=40,
             label='robot',
             zorder=11
         )
@@ -1276,19 +1311,21 @@ class Model():
         )
         #! plot trajectory
         if traj_list is not None:
-            ax.plot(traj_list[:, 0], traj_list[:, 1], color='pink', marker = 'o', markersize=0.8, linestyle='-')
+            # ax.plot(traj_list[:, 0], traj_list[:, 1], color='pink', marker = 'o', markersize=0.8, label='unoptimized planned', linestyle='-')
             traj_list_path = self.folder+"/"+str(epoch)+".npy"
             # np.save(traj_list_path, traj_list)
             plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
 
             #? plot trajectory with step size
             # ax.plot(self.trajectory[:, 0], self.trajectory[:, 1], color='red', marker='o', markersize=0.8, linestyle='-', linewidth=1)
-
+        if optimized_path is not None:
+            # ax.plot(optimized_path[:, 0], optimized_path[:, 1], color=(0.7, 0.9, 1.0), marker = 'o', label='optimized planned', markersize=0.8, linestyle='-')
+            ax.plot(optimized_path[:, 0], optimized_path[:, 1], color='pink', marker = 'o', label='optimized planned', markersize=0.8, linestyle='-')
         # plot optimized segments (blue)
         # if self.all_optimized_segments is not None:
         #     seg = self.all_optimized_segments[:-1]
         if self.currently_traversed is not None:
-            seg = self.currently_traversed[:-1]
+            seg = self.currently_traversed
             if isinstance(seg, torch.Tensor):
                 seg = seg.detach().cpu().numpy()
             if isinstance(seg, list):
@@ -1297,7 +1334,13 @@ class Model():
                     for p in seg
                 ])
             ax.plot(seg[:, 0], seg[:, 1], color='blue', marker='o', markersize=0.8, linestyle='-', linewidth=1)  
-              
+            if final:
+                ax.plot(
+                    [seg[-1][0], tar_np[0]],
+                    [seg[-1][1], tar_np[1]],
+                    color='blue',
+                    linewidth=1
+                )
         if obstacle_points is not None:
             if torch.is_tensor(obstacle_points):
                 obstacle_points = obstacle_points.detach().cpu().numpy()
@@ -1306,6 +1349,8 @@ class Model():
         ax.contour(X,Y,TT,np.arange(0,5,0.02), cmap='bone', linewidths=0.3)#0.25
         plt.colorbar(quad1,ax=ax, pad=0.1, label='Predicted Velocity')
         ax.set_title(f"Online Planning Step {epoch}", fontsize=11)
+        if final:
+            ax.set_title(f"Reached Goal at Step {epoch}", fontsize=11)
         ax.legend(loc='upper right', fontsize=8)
         plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
 
@@ -1620,7 +1665,7 @@ class Model():
         traj_list = self.predict_trajectory2(
             current_location,
             goal,
-            step_size=0.005
+            step_size=0.01
         )
 
         step_size = 0.05
@@ -1634,7 +1679,7 @@ class Model():
             index += 1
 
         return traj_list, index - 1
-    def reached_goal(self, current_pos, tol=0.01):
+    def reached_goal(self, current_pos, tol=0.006):
         """
         Check if current position is close enough to goal.
         """

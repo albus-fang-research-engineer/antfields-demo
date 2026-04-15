@@ -35,7 +35,8 @@ RUN pip install --upgrade pyglet==v1.5.28
 RUN pip install matplotlib
 
 
-WORKDIR /antfields
+WORKDIR /antfields-baseline
 ENV TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6"
 COPY bvh-distance-queries /antfields/bvh-distance-queries
 RUN cd /antfields/bvh-distance-queries && pip install -e .
+RUN pip install open3d==0.15.2

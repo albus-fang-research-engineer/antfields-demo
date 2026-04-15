@@ -1,6 +1,10 @@
 services:
-  antfields:
-    image: antfields:demo
+  antfields-baseline:
+    # image: antfields:demo
+    container_name: antfields_container_baseline
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
     stdin_open: true
     tty: true
     environment:
@@ -8,6 +12,7 @@ services:
       - QT_X11_NO_MITSHM=1
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - /home/evb_dev/Albus/antfields-demo:/antfields
-    gpus: all
+      - /home/albusfang/Albus/antfields-demo-baseline:/antfields-baseline
+    # gpus: all
+    runtime: nvidia
     command: /bin/bash

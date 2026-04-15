@@ -314,7 +314,7 @@ class Model():
         self.prev_state_queue = []
         self.prev_optimizer_queue = []
         self.timer = []
-
+        self.currently_traversed = []
         # # Parameters for the occupancy grid
         dim_cells = 100
         limit = 1.05
@@ -331,11 +331,11 @@ class Model():
         self.free_pc = []
 
         self.init_network()
-        
+        self.prev_positions = []
         self.fixed_goal = torch.tensor([ 0.05,  -0.076, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0] , dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0] , dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
         self.enable_plot = True
@@ -450,9 +450,9 @@ class Model():
         #! load data
         # startpoint
         initial_view = Tensor([-0.12, -0.046, 0])
-        initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
-        initial_view = Tensor([0.36,  0.151, 0.0])
-        initial_view = Tensor([-0.05526768, -0.00738018, 0.0])
+        # initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
+        # initial_view = Tensor([0.36,  0.151, 0.0])
+        # initial_view = Tensor([-0.05526768, -0.00738018, 0.0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file
@@ -569,7 +569,7 @@ class Model():
                     # if coverage > 0.543:
                     #     # pass
                     #     break
-                    if self.reached_goal(self.cur_view):
+                    if self.reached_goal(self.cur_view) or self.is_stuck():
                         print("Reached goal! Stopping exploration.")
                         length = self.compute_path_length(self.trajectory)
                         print(f"Total traversed length: {length * self.scale_factor:.4f} m")
@@ -577,6 +577,19 @@ class Model():
                             save_path = os.path.join(self.folder, "full_trajectory.npy")
                             np.save(save_path, self.trajectory)
                             print(f"Saved full trajectory to: {save_path}")
+                        if self.enable_plot:
+                            self.plot(
+                                self.initial_view,                 # start
+                                self.fixed_goal,                   # goal
+                                self.epoch,
+                                total_diff.item(),
+                                self.alpha,
+                                cur_data[:,:6].clone().cpu().numpy(),
+                                None,
+                                None,                              # no traj_list needed
+                                surface_points,
+                                final=True
+                            )
                         # break
                         return {
                             "length": length,
@@ -626,7 +639,7 @@ class Model():
                 
                 camera_matrix = None
                 if self.enable_plot:
-                    self.plot(self.initial_view, nbv, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list, surface_points)
+                    self.plot(self.initial_view, self.fixed_goal, self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), camera_matrix, traj_list, surface_points)
 
             elif self.mode == READ_FROM_COOKED_DATA and self.enable_plot:
                 self.plot(self.initial_view, np.array([0.3, 0.2, 0]), self.epoch, total_diff.item(),self.alpha, cur_data[:,:6].clone().cpu().numpy(), None)
@@ -644,6 +657,12 @@ class Model():
             
             if self.mode != READ_FROM_COOKED_DATA:
                 self.cur_view = nbv
+                # self.cur_view =
+                # track robot positions
+                self.prev_positions.append(self.cur_view.detach().cpu().numpy())
+                self.currently_traversed = self.trajectory.copy()
+                if len(self.prev_positions) > 10:
+                    self.prev_positions.pop(0)
 
         if False:
             print("Exploration is done. Finetuning...")
@@ -963,12 +982,31 @@ class Model():
         return Ypred
 
 
-    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None, surface_points = None):
+    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None, surface_points = None, final=False):
         limit = 1
         xmin = [-0.5, -0.5]
         xmax = [0.5, 0.5]
-        spacing=limit/80.0
+        spacing=limit/180.0
         X,Y      = np.meshgrid(np.arange(xmin[0],xmax[0],spacing),np.arange(xmin[1],xmax[1],spacing))
+
+        # --- dynamic zoom like second file ---
+        src_np = src if isinstance(src, np.ndarray) else src.cpu().numpy()
+        tar_np = tar if isinstance(tar, np.ndarray) else tar.cpu().numpy()
+
+        padding = 0.1
+
+        xmin = np.min([src_np[0], tar_np[0]]) - padding
+        xmax = np.max([src_np[0], tar_np[0]]) + padding
+        ymin = np.min([src_np[1], tar_np[1]]) - padding + 0.02
+        ymax = np.max([src_np[1], tar_np[1]]) + padding
+
+        spacing = (xmax - xmin) / 120.0  # keep resolution nice
+
+        X, Y = np.meshgrid(
+            np.arange(xmin, xmax, spacing),
+            np.arange(ymin, ymax, spacing)
+        )
+
 
         Xsrc = src 
         # Xsrc[2] = 0.2
@@ -989,14 +1027,22 @@ class Model():
         TT = tt.to('cpu').data.numpy().reshape(X.shape)
         V  = ss.to('cpu').data.numpy().reshape(X.shape)
         TAU = tau.to('cpu').data.numpy().reshape(X.shape)
-
+        np.savez(
+            self.folder + f"/field_epoch_{epoch}.npz",
+            X=X,
+            Y=Y,
+            speed=V,
+            travel_time=TT
+        )
         fig = plt.figure()
 
         ax = fig.add_subplot(111)
         # ax.invert_xaxis()
         # ax.invert_yaxis()
         quad1 = ax.pcolormesh(X,Y,V,vmin=0,vmax=1)
-
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+        ax.set_aspect('equal')
         # --- plot surface points ---
         if surface_points is not None:
             if isinstance(surface_points, torch.Tensor):
@@ -1027,7 +1073,43 @@ class Model():
             camera_y = position[1] + rotated_triangle_marker[:, 1]
             ax.fill(camera_x, camera_y, 'b')
 
-    
+        # --- robot pose (black dot) ---
+        cur_np = self.cur_view.detach().cpu().numpy()
+        # cur_np = self.trajectory[-1]
+        if final:
+            cur_np = tar_np
+        ax.scatter(
+            cur_np[0],
+            cur_np[1],
+            color='black',
+            s=60,
+            label='robot',
+            zorder=11
+        )
+        # --- start (cyan) ---
+        src_np = src if isinstance(src, np.ndarray) else src.cpu().numpy()
+        ax.scatter(
+            src_np[0],
+            src_np[1],
+            color='cyan',
+            s=40,
+            edgecolor='black',
+            linewidth=0.5,
+            label='start',
+            zorder=12
+        )
+
+        # --- goal (magenta star) ---
+        tar_np = tar if isinstance(tar, np.ndarray) else tar.cpu().numpy()
+        ax.scatter(
+            tar_np[0],
+            tar_np[1],
+            color='magenta',
+            s=60,
+            marker='*',
+            label='goal',
+            zorder=12
+        )
         #! plot trajectory
         if traj_list is not None:
             ax.plot(traj_list[:, 0], traj_list[:, 1], color='pink', marker = 'o', markersize=0.8, linestyle='-')
@@ -1036,9 +1118,39 @@ class Model():
             plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
 
             #? plot trajectory with step size
-            ax.plot(self.trajectory[:, 0], self.trajectory[:, 1], color='red', marker='o', markersize=0.8, linestyle='-', linewidth=1)
-            
+            # ax.plot(self.trajectory[:, 0], self.trajectory[:, 1], color='red', marker='o', markersize=0.8, linestyle='-', linewidth=1, label='traversed path')
+            # ax.plot(self.currently_traversed[:, 0], self.currently_traversed[:, 1], color='red', marker='o', markersize=0.8, linestyle='-', linewidth=1, label='traversed path')
+        if self.currently_traversed is not None and len(self.currently_traversed) > 1:
+            seg = self.currently_traversed
 
+            if isinstance(seg, torch.Tensor):
+                seg = seg.detach().cpu().numpy()
+
+            ax.plot(
+                seg[:, 0],
+                seg[:, 1],
+                color='blue',
+                marker='o',
+                markersize=0.8,
+                linestyle='-',
+                linewidth=1,
+                label='traversed path'
+            )
+        # connect last trajectory point to goal (final only)
+        if final and self.trajectory is not None:
+            ax.plot(self.trajectory[:, 0], self.trajectory[:, 1], color='red', marker='o', markersize=0.8, linestyle='-', linewidth=1, label='traversed path')
+            tar_np = tar if isinstance(tar, np.ndarray) else tar.cpu().numpy()
+
+            ax.plot(
+                [self.trajectory[-1][0], tar_np[0]],
+                [self.trajectory[-1][1], tar_np[1]],
+                color='red',
+                linewidth=1
+            )
+        if final:
+            ax.set_title(f"Reached Goal at Step {epoch}", fontsize=11)
+        else:
+            ax.set_title(f"Online Planning Step {epoch}", fontsize=11)
         ax.contour(X,Y,TT,np.arange(0,5,0.02), cmap='bone', linewidths=0.3)#0.25
         plt.colorbar(quad1,ax=ax, pad=0.1, label='Predicted Velocity')
         plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
@@ -1202,7 +1314,7 @@ class Model():
             index += 1
 
         return traj_list, index - 1
-    def reached_goal(self, current_pos, tol=0.01):
+    def reached_goal(self, current_pos, tol=0.006):
         """
         Check if current position is close enough to goal.
         """
@@ -1215,6 +1327,16 @@ class Model():
 
         dist = np.linalg.norm(current_pos[:2] - goal[:2])
         return dist < tol
+    def is_stuck(self, threshold=0.008):
+        if len(self.prev_positions) < 10:
+            return False
+
+        start = self.prev_positions[0]
+        end   = self.prev_positions[-1]
+
+        movement = np.linalg.norm(end[:2] - start[:2])
+
+        return movement < threshold
     def compute_path_length(self, path):
         if path is None or len(path) < 2:
             return 0.0

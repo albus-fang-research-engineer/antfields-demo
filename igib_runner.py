@@ -322,8 +322,8 @@ def get_bounds_from_pts(sample_pts):
     filtered_bounds = torch.cat([ray_bounds for ray_bounds in filtered_bounds_list if ray_bounds.nelement() > 0], dim=0)
 
     # dists -= 0
-    filtered_bounds -= 0.0305 #! subtract some value to make the bounds smaller
-    # filtered_bounds -= 0.0000001 
+    # filtered_bounds -= 0.0305 #! subtract some value to make the bounds smaller
+    filtered_bounds -= 0.0000001 
     #? add a ceiling and floor to the bounds
     # dist_ceil = torch.abs(sample_pts["pc"][:, :, 2]-2.3)
     # dist_floor = torch.abs(sample_pts["pc"][:, :, 2]+0.02)

@@ -24,7 +24,7 @@ from torchvision import transforms
 
 import matplotlib
 import matplotlib.pylab as plt
-
+from matplotlib.lines import Line2D
 import pickle
 
 from timeit import default_timer as timer
@@ -325,7 +325,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0216  #0.1
+        self.maximum = 0.0166  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -617,7 +617,6 @@ class Model():
                     traj,
                     surface_points,
                     robot_radius=0.0105,
-                    safety_margin=0.001,
                     return_details=True
                 )
 
@@ -625,6 +624,20 @@ class Model():
                     print(f"⚠️ Collision detected in executed trajectory at indices: {idxs}")
                     save_path = os.path.join(self.folder, f"collision_traj_step_{self.frame_idx}.npy")
                     np.save(save_path, np.array(self.trajectory))
+                    if self.enable_plot:
+                        self.plot(
+                            self.initial_view,
+                            self.fixed_goal,
+                            self.epoch,
+                            total_diff.item(),
+                            self.alpha,
+                            cur_data[:,:6].clone().cpu().numpy(),
+                            None,
+                            traj_list,
+                            surface_points,
+                            final=True,
+                            collision=True
+                        )
                     return {
                         "length": None,
                         "collision": True
@@ -982,7 +995,7 @@ class Model():
         return Ypred
 
 
-    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None, surface_points = None, final=False):
+    def plot(self, src, tar, epoch, total_train_loss, alpha, cur_points=None, camera_matrix=None, traj_list = None, surface_points = None, final=False, collision=False):
         limit = 1
         xmin = [-0.5, -0.5]
         xmax = [0.5, 0.5]
@@ -1047,7 +1060,7 @@ class Model():
         if surface_points is not None:
             if isinstance(surface_points, torch.Tensor):
                 surface_points = surface_points.detach().cpu().numpy()
-            ax.scatter(surface_points[:, 0], surface_points[:, 1], c='red', s=3, alpha=1.0, label="surface points", zorder=10)
+            ax.scatter(surface_points[:, 0], surface_points[:, 1], c='red', s=1, alpha=1.0, label="surface points", zorder=10)
 
         #! camera triangle
         if camera_matrix is not None:
@@ -1078,14 +1091,48 @@ class Model():
         # cur_np = self.trajectory[-1]
         if final:
             cur_np = tar_np
-        ax.scatter(
-            cur_np[0],
-            cur_np[1],
+        if self.trajectory is not None and collision and surface_points is not None:
+            traj = self.trajectory
+
+            if isinstance(traj, torch.Tensor):
+                traj = traj.detach().cpu().numpy()
+
+            col, idxs = check_collision_with_surface_points(
+                traj,
+                surface_points,
+                robot_radius=0.0105,
+                return_details=True
+            )
+
+            if col and len(idxs) > 0:
+                cut_idx = idxs[0]
+
+                # 👉 move robot to collision point
+                cur_np = traj[cut_idx]
+
+                # 👉 truncate trajectory IN PLACE
+                self.trajectory = traj[:cut_idx+1]
+                traj_list = None
+
+        # ax.scatter(
+        #     cur_np[0],
+        #     cur_np[1],
+        #     color='black',
+        #     s=70,
+        #     label='robot',
+        #     zorder=11
+        # )
+        robot_radius = 0.0105  
+        circle = plt.Circle(
+            (cur_np[0], cur_np[1]),
+            robot_radius,
             color='black',
-            s=60,
-            label='robot',
+            fill=False,
+            linewidth=2,
+            # label='robot footprint',
             zorder=11
         )
+        ax.add_patch(circle)
         # --- start (cyan) ---
         src_np = src if isinstance(src, np.ndarray) else src.cpu().numpy()
         ax.scatter(
@@ -1152,6 +1199,19 @@ class Model():
         else:
             ax.set_title(f"Online Planning Step {epoch}", fontsize=11)
         ax.contour(X,Y,TT,np.arange(0,5,0.02), cmap='bone', linewidths=0.3)#0.25
+        robot_legend = Line2D(
+            [0], [0],
+            color='black',
+            marker='o',
+            linestyle='None',
+            markersize=6,
+            label='robot'
+        )
+        handles, labels = ax.get_legend_handles_labels()
+        handles.append(robot_legend)
+        labels.append('robot')
+        ax.legend(handles, labels, loc='upper right', fontsize=8)
+        # ax.legend(loc='upper right', fontsize=8)
         plt.colorbar(quad1,ax=ax, pad=0.1, label='Predicted Velocity')
         plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
 
@@ -1346,11 +1406,26 @@ class Model():
         dists = np.linalg.norm(diffs, axis=1)
         return np.sum(dists)
     
+
+def check_margin_violation(traj, surface_points, margin=0.015):
+    traj = np.asarray(traj)
+
+    if isinstance(surface_points, torch.Tensor):
+        surface_points = surface_points.detach().cpu().numpy()
+
+    for p in traj:
+        dists = np.linalg.norm(surface_points[:, :2] - p[:2], axis=1)
+        if np.any(dists < margin):
+            # return the FIRST violating robot pose
+            return True, p
+
+    return False, None
+
 def check_collision_with_surface_points(
     traj,
     surface_points,
     robot_radius=0.0105,
-    safety_margin=0.01,
+    safety_margin=0.002,
     return_details=False
 ):
     """

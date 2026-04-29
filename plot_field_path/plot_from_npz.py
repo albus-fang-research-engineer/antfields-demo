@@ -15,8 +15,10 @@ import matplotlib.pyplot as plt
 X = data['X']
 Y = data['Y']
 speed = data['speed']
+speed[speed < 0.76] -= 0.56
+speed[speed < 0.90] -= 0.02
 # Gaussian (smoother, more natural)
-speed = gaussian_filter(speed, sigma=1.6)  # increase sigma for more smoothing
+speed = gaussian_filter(speed, sigma=1.8)  # increase sigma for more smoothing
 # plt.figure(figsize=(8, 6))
 # plt.pcolormesh(X, Y, speed, cmap='viridis', shading='auto', vmin=0, vmax=1)
 # plt.colorbar(label='Speed')
@@ -54,7 +56,10 @@ start_circle = Circle((traj[0, 0], traj[0, 1]), radius=0.0105,
                         color='black', fill=False, linewidth=2, zorder=5)
 ax.add_patch(start_circle)
 ax.scatter([], [], facecolors='none', edgecolors='black', linewidths=2, s=100, label='Turtlebot')
+obstacles = np.load('chance_constrained_plotting/obstacle_points_50.npy')
+plt.scatter(obstacles[:, 0], obstacles[:, 1], color='red', s=3, zorder=5, label='Detected Obstacle Points')
 travel_time = gaussian_filter(data['travel_time'], sigma=1.6)
+# travel_time = data['travel_time']
 plt.contour(X, Y, travel_time, levels=60, colors='black', linewidths=0.5, alpha=0.6)
 # plt.legend()
 plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.16), ncol=1, borderaxespad=0)

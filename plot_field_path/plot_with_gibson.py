@@ -43,14 +43,15 @@ edges = edges[edge_max_z < 0.05]
 # Build line segments in 2D
 verts = mesh_3d.vertices[:, :2]
 segments_2d = verts[edges]   # shape (E, 2, 2)
-# mesh_3d      = trimesh.load(MESH_PATH, force='mesh')
-# vertices_2d  = mesh_3d.vertices[:, :2]
-# faces_2d     = mesh_3d.faces
-# face_z       = mesh_3d.vertices[faces_2d, 2]
-# visible_mask = ~(np.all(face_z > CEILING_Z, axis=1) | np.all(face_z < FLOOR_Z, axis=1))
-# polys_2d     = vertices_2d[faces_2d[visible_mask]]
-# mean_z_norm  = (face_z[visible_mask].mean(axis=1) - face_z[visible_mask].mean(axis=1).min())
-# mean_z_norm /= (mean_z_norm.ptp() + 1e-9)
+
+# --- Floor mesh ---
+face_z = mesh_3d.vertices[mesh_3d.faces, 2]
+floor_mask = (
+    (np.abs(normals[:, 2]) > 0.7) &          # horizontal face (floor/ceiling)
+    (face_z.mean(axis=1) < FLOOR_Z + 0.05)   # near floor level
+)
+vertices_2d = mesh_3d.vertices[:, :2]
+floor_polys = vertices_2d[mesh_3d.faces[floor_mask]]
 
 
 X = data['X']
@@ -91,9 +92,9 @@ traj = np.load(f'chance_constrained_plotting/epoch_{epoch:04d}_optimized.npy')
 plt.figure(figsize=(8, 5))
 ax = plt.gca()
 ax.set_aspect('equal')
-# col = PolyCollection(polys_2d, array=mean_z_norm, cmap='gray',
-#                      alpha=0.1, linewidths=0.0, zorder=60)
-# ax.add_collection(col)
+col = PolyCollection(floor_polys, facecolors='white', linewidths=0.0,
+                     alpha=0.15, zorder=60)
+ax.add_collection(col)
 lc = LineCollection(segments_2d, colors='white', linewidths=0.6,
                     alpha=0.6, zorder=2)
 ax.add_collection(lc)
@@ -104,7 +105,7 @@ plt.colorbar(label='Speed')
 # If traj is shape (N, 2) — x in col 0, y in col 1
 plt.plot(traj[:, 0], traj[:, 1], color='pink', linewidth=1.5, alpha=0.9, label='Optimized Planned Trajectory')
 # plt.scatter(traj[0, 0], traj[0, 1], color='cyan', zorder=5, s=36, label='Start')
-plt.scatter(traj[-1, 0], traj[-1, 1], color='violet', marker='*', zorder=5, s=200, label='Goal')
+plt.scatter(traj[-1, 0], traj[-1, 1], color='cyan', marker='*', zorder=5, s=260, label='Goal')
 # start_circle = Circle((traj[0, 0], traj[0, 1]), radius=0.0105, 
 #                        color='black', fill=False, linewidth=2, zorder=5, label='Turtlebot')
 # plt.gca().add_patch(start_circle)

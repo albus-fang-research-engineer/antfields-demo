@@ -8,7 +8,7 @@ import trimesh
 from matplotlib.lines import Line2D
 # ── Config ────────────────────────────────────────────────────────────────────
 EPOCHS     = [50, 100, 150, 200, 250]
-SAVE_PLOT  = True
+SAVE_PLOT  = False
 BASE_PATH  = 'chance_constrained_plotting'
 MESH_PATH  = 'gibson/mesh.obj'
 CEILING_Z  = 0.02
@@ -73,7 +73,7 @@ for ax, epoch in zip(axes, EPOCHS):
 
     speed[speed < 0.76] -= 0.56
     speed[speed < 0.90] -= 0.026
-    speed[speed > 0.92] += 0.02
+    speed[speed > 0.95] += 0.036
     speed = gaussian_filter(speed, sigma=1.8)
 
     traj      = np.load(f'{BASE_PATH}/epoch_{epoch:04d}_optimized.npy')
@@ -108,7 +108,7 @@ for ax, epoch in zip(axes, EPOCHS):
                linewidths=2, s=100, label='Turtlebot')
 
     ax.scatter(obstacles[:, 0], obstacles[:, 1], color='red', s=2,
-               zorder=5, label='Detected Obstacle Points')
+               zorder=5, label='Lidar Points')
 
     if traversed is not None:
         ax.plot(traversed[:, 0], traversed[:, 1], color='blue', linewidth=2,
@@ -125,11 +125,11 @@ for ax, epoch in zip(axes, EPOCHS):
 
     ax.set_xlim(-0.25, 0.15)
     ax.set_ylim(-0.15, 0.05)
-    ax.set_xlabel('X (m)')
+    ax.set_xlabel('X (m)', fontsize=16)
     ax.set_title(f'Epoch {epoch}')
 
     if epoch == EPOCHS[0]:                 # only leftmost gets Y label
-        ax.set_ylabel('Y (m)')
+        ax.set_ylabel('Y (m)', fontsize=16)
 
     # ── Grab legend from first non-50 epoch ───────────────────────────────
     if legend_handles is None and epoch != 50:
@@ -139,23 +139,27 @@ for ax, epoch in zip(axes, EPOCHS):
             'Start',
             'Goal',
             'Turtlebot',
-            'Detected Obstacle Points',
+            'Lidar Points',
         ]
         handles, labels = ax.get_legend_handles_labels()
         label_to_handle = dict(zip(labels, handles))
         legend_handles = [label_to_handle[l] for l in desired_order if l in label_to_handle]
         legend_labels  = [l for l in desired_order if l in label_to_handle]
-
+wall_proxy = Line2D([0], [0], color='#aaaaaa', linewidth=1.2, alpha=0.9, label='Mesh Walls')
+legend_handles.append(wall_proxy)
+legend_labels.append('Mesh Walls')
 # ── Shared colorbar ───────────────────────────────────────────────────────────
 fig.subplots_adjust(bottom=0.12, top=0.78, left=0.05, right=0.93, wspace=0.15)
 cbar_ax = fig.add_axes([0.94, 0.12, 0.015, 0.66])
-fig.colorbar(pcm, cax=cbar_ax, label='Speed')
+cb = fig.colorbar(pcm, cax=cbar_ax)
+cb.set_label('Predicted Speed', fontsize=16)
+cb.ax.tick_params(labelsize=11)
 
 # ── Shared legend (centered above all subplots) ───────────────────────────────
 fig.legend(legend_handles, legend_labels,
            loc='upper center', bbox_to_anchor=(0.47, 0.816),
-           ncol=len(legend_labels), borderaxespad=0, fontsize=9)
-
+           ncol=len(legend_labels), borderaxespad=0, fontsize=16)
+fig.suptitle('Evolution of Planned Path and Neural Time Field', fontsize=16, fontweight='bold', y=0.9)
 if SAVE_PLOT:
     plt.savefig('epoch_sweep_50_250.png', dpi=150, bbox_inches='tight')
 

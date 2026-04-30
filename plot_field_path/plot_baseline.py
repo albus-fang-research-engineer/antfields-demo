@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter, uniform_filter
 
-epoch = 200
+epoch = 100
 save_plot = True
-base_path = 'baseline_success'
+base_path = 'pair1/baseline_success'
 
 # data = np.load(f'{base_path}/field_epoch_100.npz')
 data = np.load(f'{base_path}/field_epoch_{epoch}.npz')
@@ -33,8 +33,8 @@ def get_traversed_path(current_epoch, base_path=base_path):
     segments = []
     epoch = 50
     while epoch < current_epoch:
-        traj = np.load(f'{base_path}/epoch_{epoch:04d}_optimized.npy')
-        next_traj = np.load(f'{base_path}/epoch_{epoch+50:04d}_optimized.npy')
+        traj = np.load(f'{base_path}/planned_path_{epoch}.npy')
+        next_traj = np.load(f'{base_path}/planned_path_{epoch+50}.npy')
         next_start = next_traj[0]
         
         dists = np.linalg.norm(traj - next_start, axis=1)
@@ -46,7 +46,7 @@ def get_traversed_path(current_epoch, base_path=base_path):
     return np.concatenate(segments, axis=0)
 
 # traj = np.load(f'{base_path}/epoch_0100_optimized.npy')
-traj = np.load(f'{base_path}/epoch_{epoch:04d}_optimized.npy')
+traj = np.load(f'{base_path}/planned_path_{epoch}.npy')
 # plt.figure(figsize=(8, 6))
 # x_range = 0.16 - (-0.23)  # 0.39
 # y_range = 0.05 - (-0.15)  # 0.20
@@ -62,7 +62,7 @@ plt.colorbar(label='Speed')
 # If traj is shape (N, 2) — x in col 0, y in col 1
 plt.plot(traj[:, 0], traj[:, 1], color='pink', linewidth=1.5, alpha=0.9, label='Optimized Planned Trajectory')
 # plt.scatter(traj[0, 0], traj[0, 1], color='cyan', zorder=5, s=36, label='Start')
-plt.scatter(traj[-1, 0], traj[-1, 1], color='violet', marker='*', zorder=5, s=200, label='Goal')
+plt.scatter(traj[-1, 0], traj[-1, 1], color='cyan', marker='*', zorder=5, s=260, label='Goal')
 # start_circle = Circle((traj[0, 0], traj[0, 1]), radius=0.0105, 
 #                        color='black', fill=False, linewidth=2, zorder=5, label='Turtlebot')
 # plt.gca().add_patch(start_circle)
@@ -72,7 +72,7 @@ start_circle = Circle((traj[0, 0], traj[0, 1]), radius=0.0105,
 ax.add_patch(start_circle)
 ax.scatter([], [], facecolors='none', edgecolors='black', linewidths=2, s=100, label='Turtlebot')
 # obstacles = np.load(f'{base_path}/obstacle_points_50.npy')
-obstacles = np.load(f'{base_path}/obstacle_points_{epoch}.npy')
+obstacles = np.load(f'{base_path}/surface_points_{epoch}.npy')
 plt.scatter(obstacles[:, 0], obstacles[:, 1], color='red', s=2, zorder=5, label='Detected Obstacle Points')
 
 # traversed = get_traversed_path(100)  # change 50 to whatever current epoch you're plotting
@@ -86,7 +86,7 @@ start = traversed[0] if traversed is not None else traj[0]
 plt.scatter(start[0], start[1], color='cyan', zorder=5, s=36, label='Start')
 travel_time = gaussian_filter(data['travel_time'], sigma=1.6)
 # travel_time = data['travel_time']
-plt.contour(X, Y, travel_time, levels=60, colors='black', linewidths=0.5, alpha=0.6)
+plt.contour(X, Y, travel_time, levels=30, colors='black', linewidths=0.5, alpha=0.6)
 # plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.16), ncol=1, borderaxespad=0)
 handles, labels = ax.get_legend_handles_labels()
 # Define the desired order by label name
@@ -116,5 +116,5 @@ plt.ylim(-0.15, 0.05)
 plt.tight_layout(rect=[0, 0, 0.75, 1])  # was plt.tight_layout()
 # plt.savefig(f'{base_path}/epoch_100_field_and_path')
 if save_plot:
-    plt.savefig(f'epoch_{epoch}_field_and_path')
+    plt.savefig(f'pair1/plots/baseline_epoch_{epoch}_field_and_path')
 plt.show()

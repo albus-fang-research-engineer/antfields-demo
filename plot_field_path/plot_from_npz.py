@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter, uniform_filter
-
+from matplotlib.ticker import FuncFormatter
 epoch = 200
 save_plot = True
 
@@ -102,12 +102,13 @@ desired_order = [
 label_to_handle = dict(zip(labels, handles))
 ordered_handles = [label_to_handle[l] for l in desired_order if l in label_to_handle]
 ordered_labels  = [l for l in desired_order if l in label_to_handle]
-
+ax.xaxis.set_major_formatter(FuncFormatter(lambda val, _: f'{val * 10:.2g}'))
+ax.yaxis.set_major_formatter(FuncFormatter(lambda val, _: f'{val * 10:.2g}'))
 ax.legend(ordered_handles, ordered_labels,
           loc='lower center', bbox_to_anchor=(0.5, 1.2),
           ncol=1, borderaxespad=0)
-plt.xlabel('X')
-plt.ylabel('Y')
+plt.xlabel('X (m)')
+plt.ylabel('Y (m)')
 plt.title('Speed over X/Y Grid')
 plt.xlim(-0.25, 0.15)
 plt.ylim(-0.15, 0.05)

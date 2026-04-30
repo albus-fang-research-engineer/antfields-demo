@@ -1,6 +1,11 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter, uniform_filter
-data = np.load('chance_constrained_plotting/field_epoch_50.npz')
+
+epoch = 200
+save_plot = True
+
+# data = np.load('chance_constrained_plotting/field_epoch_100.npz')
+data = np.load(f'chance_constrained_plotting/field_epoch_{epoch}.npz')
 from matplotlib.patches import Circle
 # See all array names/keys
 print(data.files)        # e.g. ['arr_0', 'arr_1', 'x', 'y']
@@ -16,7 +21,8 @@ X = data['X']
 Y = data['Y']
 speed = data['speed']
 speed[speed < 0.76] -= 0.56
-speed[speed < 0.90] -= 0.02
+speed[speed < 0.90] -= 0.026
+speed[speed > 0.92] += 0.02
 # Gaussian (smoother, more natural)
 speed = gaussian_filter(speed, sigma=1.8)  # increase sigma for more smoothing
 def get_traversed_path(current_epoch, base_path='chance_constrained_plotting'):
@@ -38,15 +44,15 @@ def get_traversed_path(current_epoch, base_path='chance_constrained_plotting'):
     
     return np.concatenate(segments, axis=0)
 
-traj = np.load('chance_constrained_plotting/epoch_0100_optimized.npy')
-
+# traj = np.load('chance_constrained_plotting/epoch_0100_optimized.npy')
+traj = np.load(f'chance_constrained_plotting/epoch_{epoch:04d}_optimized.npy')
 # plt.figure(figsize=(8, 6))
 # x_range = 0.16 - (-0.23)  # 0.39
 # y_range = 0.05 - (-0.15)  # 0.20
 # aspect = x_range / y_range  # ~1.95
 
 # plt.figure(figsize=(6 * aspect, 6))
-plt.figure(figsize=(8, 6))
+plt.figure(figsize=(8, 5))
 ax = plt.gca()
 ax.set_aspect('equal')
 plt.pcolormesh(X, Y, speed, cmap='viridis', shading='auto', vmin=0, vmax=1)
@@ -55,7 +61,7 @@ plt.colorbar(label='Speed')
 # If traj is shape (N, 2) — x in col 0, y in col 1
 plt.plot(traj[:, 0], traj[:, 1], color='pink', linewidth=1.5, alpha=0.9, label='Optimized Planned Trajectory')
 # plt.scatter(traj[0, 0], traj[0, 1], color='cyan', zorder=5, s=36, label='Start')
-plt.scatter(traj[-1, 0], traj[-1, 1], color='purple', marker='*', zorder=5, s=200, label='Goal')
+plt.scatter(traj[-1, 0], traj[-1, 1], color='violet', marker='*', zorder=5, s=200, label='Goal')
 # start_circle = Circle((traj[0, 0], traj[0, 1]), radius=0.0105, 
 #                        color='black', fill=False, linewidth=2, zorder=5, label='Turtlebot')
 # plt.gca().add_patch(start_circle)
@@ -64,10 +70,12 @@ start_circle = Circle((traj[0, 0], traj[0, 1]), radius=0.0105,
                         color='black', fill=False, linewidth=2, zorder=5)
 ax.add_patch(start_circle)
 ax.scatter([], [], facecolors='none', edgecolors='black', linewidths=2, s=100, label='Turtlebot')
-obstacles = np.load('chance_constrained_plotting/obstacle_points_50.npy')
-plt.scatter(obstacles[:, 0], obstacles[:, 1], color='red', s=3, zorder=5, label='Detected Obstacle Points')
+# obstacles = np.load('chance_constrained_plotting/obstacle_points_50.npy')
+obstacles = np.load(f'chance_constrained_plotting/obstacle_points_{epoch}.npy')
+plt.scatter(obstacles[:, 0], obstacles[:, 1], color='red', s=2, zorder=5, label='Detected Obstacle Points')
 
-traversed = get_traversed_path(100)  # change 50 to whatever current epoch you're plotting
+# traversed = get_traversed_path(100)  # change 50 to whatever current epoch you're plotting
+traversed = get_traversed_path(epoch)
 # plt.plot(traversed[:, 0], traversed[:, 1], color='blue', linewidth=2, 
 #          alpha=0.8, label='Traversed Path', zorder=4)
 if traversed is not None:
@@ -96,7 +104,7 @@ ordered_handles = [label_to_handle[l] for l in desired_order if l in label_to_ha
 ordered_labels  = [l for l in desired_order if l in label_to_handle]
 
 ax.legend(ordered_handles, ordered_labels,
-          loc='lower center', bbox_to_anchor=(0.5, 1.16),
+          loc='lower center', bbox_to_anchor=(0.5, 1.2),
           ncol=1, borderaxespad=0)
 plt.xlabel('X')
 plt.ylabel('Y')
@@ -105,4 +113,7 @@ plt.xlim(-0.25, 0.15)
 plt.ylim(-0.15, 0.05)
 # plt.tight_layout()
 plt.tight_layout(rect=[0, 0, 0.75, 1])  # was plt.tight_layout()
+# plt.savefig('epoch_100_field_and_path')
+if save_plot:
+    plt.savefig(f'epoch_{epoch}_field_and_path')
 plt.show()

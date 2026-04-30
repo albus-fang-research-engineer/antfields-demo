@@ -80,7 +80,7 @@ def batched_min_mean_distance(model, query_pts, local_obs):
 
     return min_mu
 
-def batched_cvar_distance(model, query_pts, local_obs, alpha=0.4, tail=0.1):
+def batched_cvar_distance(model, query_pts, local_obs, alpha=0.46, tail=0.1):
 
     device = model.dist_device
 
@@ -453,10 +453,10 @@ def sample_points_from_pos(model, position, scale_factor=1):
     """
     configs
     """
-    n_rays = 5000
+    n_rays = 7000 #5000
     dist_behind_surf = 0. #0.2
-    n_strat_samples = 20
-    n_surf_samples = 8
+    n_strat_samples = 22 # 20
+    n_surf_samples = 10  #8
     min_depth = 0.01
     max_depth = 0.25
     dist_behind_surf *= scale_factor

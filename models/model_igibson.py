@@ -24,7 +24,7 @@ from torchvision import transforms
 
 import matplotlib
 import matplotlib.pylab as plt
-
+from matplotlib.lines import Line2D
 import pickle
 
 from timeit import default_timer as timer
@@ -560,7 +560,7 @@ class Model():
         #! load data
         initial_view = Tensor([-0.12, -0.046, 0])
         # initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
-        # initial_view = Tensor([0.36,  0.151, 0.0])
+        # initial_view = Tensor([0.36,  0.171, 0.0]) #initial_view = Tensor([0.36,  0.151, 0.0])
         # initial_view = Tensor([-0.05526768, -0.00738018, 0.0])
         self.initial_view = initial_view
         
@@ -609,11 +609,11 @@ class Model():
 
         cur_data = torch.cat((all_points, all_speeds), dim=1)
         return cur_data
-    def is_stuck(self, threshold=0.008):
-        if len(self.prev_positions) < 10:
+    def is_stuck(self, threshold=0.005):
+        if len(self.prev_positions) < 2:
             return False
 
-        start = self.prev_positions[0]
+        start = self.prev_positions[-2]
         end   = self.prev_positions[-1]
 
         movement = np.linalg.norm(end[:2] - start[:2])
@@ -1291,15 +1291,24 @@ class Model():
             label='start',
             zorder=12
         )
-        
-        ax.scatter(
-            cur_np[0],
-            cur_np[1],
+        robot_radius = 0.0105
+        circle = plt.Circle(
+            (cur_np[0], cur_np[1]),
+            robot_radius,
             color='black',
-            s=40,
-            label='robot',
+            fill=False,
+            linewidth=2,
             zorder=11
         )
+        ax.add_patch(circle)
+        # ax.scatter(
+        #     cur_np[0],
+        #     cur_np[1],
+        #     color='black',
+        #     s=40,
+        #     label='robot',
+        #     zorder=11
+        # )
         ax.scatter(
             tar_np[0],
             tar_np[1],
@@ -1344,6 +1353,7 @@ class Model():
         if obstacle_points is not None:
             if torch.is_tensor(obstacle_points):
                 obstacle_points = obstacle_points.detach().cpu().numpy()
+                np.save(self.folder + f"/obstacle_points_{epoch}.npy", obstacle_points)
             ax.scatter(obstacle_points[:, 0], obstacle_points[:, 1], c='red', s=0.5, alpha=0.5, label="surface points", zorder=10)
         
         ax.contour(X,Y,TT,np.arange(0,5,0.02), cmap='bone', linewidths=0.3)#0.25
@@ -1351,7 +1361,30 @@ class Model():
         ax.set_title(f"Online Planning Step {epoch}", fontsize=11)
         if final:
             ax.set_title(f"Reached Goal at Step {epoch}", fontsize=11)
-        ax.legend(loc='upper right', fontsize=8)
+        robot_legend = Line2D(
+            [0], [0],
+            color='black',
+            marker='o',
+            linestyle='None',
+            markersize=8,
+            markerfacecolor='none',   # hollow circle
+            markeredgewidth=1.5,
+            label='robot'
+        )
+
+        handles, labels = ax.get_legend_handles_labels()
+        handles.append(robot_legend)
+        labels.append('robot')
+
+        # ax.legend(handles, labels, loc='upper right', fontsize=8)
+        ax.legend(
+            handles, labels,
+            loc='lower left',              # anchor point of legend box
+            bbox_to_anchor=(1.02, 1.0),    # move it outside to the right
+            fontsize=8,
+            borderaxespad=0.
+        )
+        # ax.legend(loc='upper right', fontsize=8)
         plt.savefig(self.folder+"/plots"+str(epoch)+"_"+str(alpha)+"_"+str(round(total_train_loss,4))+"_0.png",bbox_inches='tight')
 
         plt.close(fig)
@@ -1665,7 +1698,7 @@ class Model():
         traj_list = self.predict_trajectory2(
             current_location,
             goal,
-            step_size=0.01
+            step_size=0.005
         )
 
         step_size = 0.05

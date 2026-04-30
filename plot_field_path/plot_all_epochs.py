@@ -107,7 +107,7 @@ for ax, epoch in zip(axes, EPOCHS):
     ax.scatter([], [], facecolors='none', edgecolors='black',
                linewidths=2, s=100, label='Turtlebot')
 
-    ax.scatter(obstacles[:, 0], obstacles[:, 1], color='red', s=2,
+    ax.scatter(obstacles[:, 0], obstacles[:, 1], color='red', s=1,
                zorder=5, label='Lidar Points')
 
     if traversed is not None:
@@ -148,6 +148,12 @@ for ax, epoch in zip(axes, EPOCHS):
 wall_proxy = Line2D([0], [0], color='#aaaaaa', linewidth=1.2, alpha=0.9, label='Mesh Walls')
 legend_handles.append(wall_proxy)
 legend_labels.append('Mesh Walls')
+obstacle_proxy = Line2D([0], [0], marker='o', color='w',
+                        markerfacecolor='red', markersize=8,
+                        label='Lidar Points')
+idx = legend_labels.index('Lidar Points')
+legend_handles[idx] = obstacle_proxy
+
 # ── Shared colorbar ───────────────────────────────────────────────────────────
 fig.subplots_adjust(bottom=0.12, top=0.78, left=0.05, right=0.93, wspace=0.15)
 cbar_ax = fig.add_axes([0.94, 0.12, 0.015, 0.66])

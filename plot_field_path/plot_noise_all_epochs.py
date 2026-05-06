@@ -116,20 +116,59 @@ for ax, epoch in zip(axes, EPOCHS):
     obstacles = obstacles[dd[:, 1] < ISOLATION_THRESH]
 
     # ── Sample & size lidar points by distance from robot ──────────────────
-    N_SAMPLE   = min(2000, len(obstacles))
+    # N_SAMPLE   = min(3660, len(obstacles))
+    # sample_idx = np.random.choice(len(obstacles), N_SAMPLE, replace=False)
+    # sampled    = obstacles[sample_idx]
+
+    # dists      = np.linalg.norm(sampled - traj[0], axis=1)      # dist to robot
+    # dists      = np.clip(dists, 0.005, 0.2)                     # clamp to range
+
+    # S_MIN, S_MAX = 0.2, 120                                      # marker size range
+    # t     = (dists - 0.005) / 0.195                              # normalise to [0, 1]
+    # sizes = S_MIN + (t ** 4.0) * (S_MAX - S_MIN)                # power curve remap
+
+    # ax.scatter(sampled[:, 0], sampled[:, 1], color='red', s=sizes,
+    #            zorder=5, label='Lidar Points')
+    # ── Sample lidar points and draw fixed-size points + uncertainty regions ──
+    N_SAMPLE   = min(3960, len(obstacles))
     sample_idx = np.random.choice(len(obstacles), N_SAMPLE, replace=False)
     sampled    = obstacles[sample_idx]
 
-    dists      = np.linalg.norm(sampled - traj[0], axis=1)      # dist to robot
-    dists      = np.clip(dists, 0.005, 0.2)                     # clamp to range
+    # Current script uses distance as a proxy for uncertainty
+    # (farther points = higher uncertainty)
+    uncertainty = np.linalg.norm(sampled - traj[0], axis=1)
+    uncertainty = np.clip(uncertainty, 0.005, 0.2)
 
-    S_MIN, S_MAX = 0.2, 120                                      # marker size range
-    t     = (dists - 0.005) / 0.195                              # normalise to [0, 1]
-    sizes = S_MIN + (t ** 4.0) * (S_MAX - S_MIN)                # power curve remap
+    # Normalize to [0, 1]
+    t = (uncertainty - 0.005) / 0.195
 
-    ax.scatter(sampled[:, 0], sampled[:, 1], color='red', s=sizes,
-               zorder=5, label='Lidar Points')
+    # Fixed point size for all lidar points
+    POINT_SIZE = 1
 
+    # Halo / uncertainty-region size:
+    # smaller for low uncertainty, larger for high uncertainty
+    HALO_MIN, HALO_MAX = 25, 800
+    halo_sizes = HALO_MIN + (t ** 2.8) * (HALO_MAX - HALO_MIN)
+
+    # Draw uncertainty regions first (darker red, semi-transparent)
+    ax.scatter(
+        sampled[:, 0], sampled[:, 1],
+        s=halo_sizes,
+        color='#8B0000',      # dark red
+        alpha=0.22,
+        linewidths=0,
+        zorder=4
+    )
+
+    # Draw the actual lidar points on top, all same size
+    ax.scatter(
+        sampled[:, 0], sampled[:, 1],
+        s=POINT_SIZE,
+        color='red',
+        alpha=0.95,
+        zorder=5,
+        label='Lidar Points'
+    )
     if traversed is not None:
         ax.plot(traversed[:, 0], traversed[:, 1], color='blue', linewidth=2,
                 alpha=0.8, label='Traversed Path', zorder=4)
@@ -175,7 +214,14 @@ obstacle_proxy = Line2D([0], [0], marker='o', color='w',
                         label='Lidar Points')
 idx = legend_labels.index('Lidar Points')
 legend_handles[idx] = obstacle_proxy
+# Add a separate shaded-circle legend entry for uncertainty halo
+uncertainty_proxy = Line2D([0], [0], marker='o', color='w',
+                           markerfacecolor='#8B0000', markeredgecolor='none',
+                           alpha=0.8, markersize=16,
+                           label='Uncertainty Magnitude')
 
+legend_handles.append(uncertainty_proxy)
+legend_labels.append('Uncertainty Magnitude')
 # ── Shared colorbar ───────────────────────────────────────────────────────────
 fig.subplots_adjust(bottom=0.12, top=0.78, left=0.05, right=0.93, wspace=0.15)
 cbar_ax = fig.add_axes([0.94, 0.12, 0.015, 0.66])
@@ -184,12 +230,31 @@ cb.set_label('Predicted Speed', fontsize=16)
 cb.ax.tick_params(labelsize=11)
 
 # ── Shared legend (centered above all subplots) ───────────────────────────────
-fig.legend(legend_handles, legend_labels,
-           loc='upper center', bbox_to_anchor=(0.47, 0.816),
-           ncol=len(legend_labels), borderaxespad=0, fontsize=16)
+# fig.legend(legend_handles, legend_labels,
+#            loc='upper center', bbox_to_anchor=(0.47, 0.816),
+#            ncol=len(legend_labels), borderaxespad=0, fontsize=16)
+main_handles = legend_handles[:-1]
+main_labels  = legend_labels[:-1]
+leg1 = fig.legend(
+    main_handles, main_labels,
+    loc='upper center',
+    bbox_to_anchor=(0.47, 0.816),
+    ncol=len(main_labels),
+    borderaxespad=0,
+    fontsize=16
+)
+
+leg2 = fig.legend(
+    [legend_handles[-1]], [legend_labels[-1]],
+    loc='upper center',
+    bbox_to_anchor=(0.47, 0.736),
+    ncol=1,
+    borderaxespad=0,
+    fontsize=16
+)
 fig.suptitle('Evolution of Planned Path and Neural Time Field', fontsize=16, fontweight='bold', y=0.9)
 
 if SAVE_PLOT:
-    plt.savefig('epoch_sweep_50_250.png', dpi=150, bbox_inches='tight')
+    plt.savefig('epoch_all_with_noise.png', dpi=150, bbox_inches='tight')
 
 plt.show()

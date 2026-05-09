@@ -64,14 +64,20 @@ def main():
 
     print(f"Global run folder: {global_folder}")
     lengths = []
-    num_runs = 20
+    num_runs = 10
     collisions = 0
+    all_policy_times = []          # <-- add
+    all_optimizer_times = []       # <-- add
+    all_total_times = []           # <-- add
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")
 
         model = md.Model(global_folder, 3, scale_factor, mode, renderer, device='cuda:0')
         
         result = model.train()
+        all_policy_times.extend(result["policy_times"])              # <-- add
+        all_optimizer_times.extend(result["optimizer_times"])        # <-- add
+        all_total_times.extend(result["total_planning_times"])       # <-- add
         if result["collision"]:
             collisions += 1
             print("Run ended with collision")
@@ -85,12 +91,21 @@ def main():
         #     print("Warning: run did not reach goal")
 
     lengths = np.array(lengths)
-
+    policy_times = np.array(all_policy_times)
+    optimizer_times = np.array(all_optimizer_times)
+    total_times = np.array(all_total_times)
     print("\n===== FINAL RESULTS =====")
     print(f"Runs completed: {len(lengths)}")
     print(f"Mean path length: {np.mean(lengths) * 10:.4f} m")
     print(f"Std: {np.std(lengths)*10:.4f} m")
     print(f"Collision rate: {collisions / num_runs:.2f}")
+    if len(total_times) > 0:
+        print(f"Planning calls:        {len(total_times)}")
+        print(f"Mean policy time:      {np.mean(policy_times)*1000:.2f} ms  (std {np.std(policy_times)*1000:.2f})")
+        print(f"Mean optimizer time:   {np.mean(optimizer_times)*1000:.2f} ms  (std {np.std(optimizer_times)*1000:.2f})")
+        print(f"Mean total plan time:  {np.mean(total_times)*1000:.2f} ms  (std {np.std(total_times)*1000:.2f})")
+    else:
+        print("No planning calls recorded.")
 
 if __name__ == '__main__':
     main()

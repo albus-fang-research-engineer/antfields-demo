@@ -374,7 +374,7 @@ class Model():
         self.scale_factor = scale_factor
         current_time = datetime.utcnow()-timedelta(hours=4)
         self.folder = self.Params['ModelPath']+"/"+current_time.strftime("%m_%d_%H_%M")
-        # self.folder = None
+        self.folder = None
         # ===== Find next available RUN_X folder =====
         base_path = ModelPath
         run_id = 0
@@ -387,6 +387,7 @@ class Model():
             run_id += 1
 
         self.folder = run_folder
+        self.folder = None
         # Pass the JSON information
         self.Params['Device'] = device
         self.Params['Pytorch Amp (bool)'] = False
@@ -428,7 +429,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.016  #0.1
+        self.maximum = 0.0146  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -440,15 +441,19 @@ class Model():
         self.dist_model = self.dist_model.to(self.Params['Device'])
         self.dist_device = self.Params['Device']
         self.currently_traversed = None
-        # ===== Fixed experiment setup =====
         # self.fixed_start = torch.tensor([-0.3, -0.2, 0.0], dtype=torch.float32)
+        # self.fixed_start = self.fixed_start.to(self.Params['Device'])
+        # ===== Fixed experiment setup =====
+        #####################    MAP1      ############################
         self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
-        # self.fixed_start = self.fixed_start.to(self.Params['Device'])
+        self.fixed_goal = torch.tensor([0.15,  0.0396, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.2816,   0.1116,  0.0], dtype=torch.float32)
+        
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
-        self.enable_plot = True
+        self.enable_plot = False
     def gradient(self, y, x, create_graph=True):                                                               
                                                                                   
         grad_y = torch.ones_like(y)                                                                 
@@ -561,7 +566,9 @@ class Model():
         initial_view = Tensor([-0.12, -0.046, 0])
         # initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
         # initial_view = Tensor([0.36,  0.171, 0.0]) #initial_view = Tensor([0.36,  0.151, 0.0])
-        # initial_view = Tensor([-0.05526768, -0.00738018, 0.0])
+        # initial_view = Tensor([-0.05826768, -0.00738018, 0.0])
+        initial_view = Tensor([0.0726, -0.05, 0.0])
+        initial_view = Tensor([0.166, 0.0396, 0.0 ])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file
@@ -625,6 +632,9 @@ class Model():
 
         self.load_rawdata()
         is_one_frame = True
+        policy_times = []           # <-- add
+        optimizer_times = []        # <-- add
+        total_planning_times = []
         while True:
             if True:
                 print("Current Viewpoint:", self.cur_view)
@@ -693,15 +703,16 @@ class Model():
                         print(f"Total traversed length: {length * self.scale_factor:.4f} m")
                         # ===== SAVE FULL TRAJECTORY =====
                         if self.trajectory is not None:
-                            base_name = "full_trajectory"
-                            i = 0
-                            while True:
-                                save_path = os.path.join(self.folder, f"{base_name}_{i}.npy")
-                                if not os.path.exists(save_path):
-                                    break
-                                i += 1
-                            np.save(save_path, self.trajectory)
-                            print(f"Saved full trajectory to: {save_path}")
+                            if self.folder is not None:
+                                base_name = "full_trajectory"
+                                i = 0
+                                while True:
+                                    save_path = os.path.join(self.folder, f"{base_name}_{i}.npy")
+                                    if not os.path.exists(save_path):
+                                        break
+                                    i += 1
+                                np.save(save_path, self.trajectory)
+                                print(f"Saved full trajectory to: {save_path}")
                             if self.enable_plot:
                                 self.plot(
                                     self.initial_view,                 # start
@@ -718,7 +729,10 @@ class Model():
                                 )
                             return {
                                 "length": length,
-                                "collision": False
+                                "collision": False,
+                                "policy_times": policy_times,
+                                "optimizer_times": optimizer_times,
+                                "total_planning_times": total_planning_times,
                             }
                         # break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
@@ -761,6 +775,9 @@ class Model():
                 print(f"Policy time: {policy_time:.4f}s")
                 print(f"Optimizer time: {optimizer_time:.4f}s")
                 print(f"Total planning time: {total_time:.4f}s")
+                policy_times.append(policy_time)             # <-- add
+                optimizer_times.append(optimizer_time)       # <-- add
+                total_planning_times.append(total_time)      # <-- add
                 optimized_traj_list = [
                     p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p)
                     for p in optimized_traj_list
@@ -828,12 +845,15 @@ class Model():
 
                     return {
                         "length": None,
-                        "collision": True
+                        "collision": True,
+                        "policy_times": policy_times,
+                        "optimizer_times": optimizer_times,
+                        "total_planning_times": total_planning_times,
                     }
                 
                 #? ******************SAVINGS start*******************
                 save_traj = True
-                if save_traj:
+                if save_traj and self.folder is not None:
                     np.save(self.folder+"/traj"+"_"+str(self.epoch)+".npy", self.trajectory)
 
 

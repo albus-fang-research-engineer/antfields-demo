@@ -325,7 +325,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0166  #0.1
+        self.maximum = 0.016  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -335,7 +335,10 @@ class Model():
         self.fixed_goal = torch.tensor([ 0.05,  -0.076, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0] , dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.15,  0.0396, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.2816,   0.1116,  0.0], dtype=torch.float32)
+
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
         self.enable_plot = True
@@ -452,7 +455,9 @@ class Model():
         initial_view = Tensor([-0.12, -0.046, 0])
         # initial_view = Tensor([ 0.04,  -0.02060163, 0.0])
         # initial_view = Tensor([0.36,  0.151, 0.0])
-        # initial_view = Tensor([-0.05526768, -0.00738018, 0.0])
+        # initial_view = Tensor([-0.05826768, -0.00738018, 0.0])
+        initial_view = Tensor([0.0726, -0.05, 0.0])
+        initial_view = Tensor([0.166, 0.0396, 0.0 ])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file
@@ -605,6 +610,16 @@ class Model():
                 print("nbv", nbv)
                 print("curview", self.cur_view)
                 traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy())
+                if traj_list is not None and self.epoch % 50 == 0:
+                    save_path = os.path.join(self.folder, f"planned_path_{self.epoch}.npy")
+                    np.save(save_path, traj_list)
+                if self.trajectory is not None and self.epoch % 50 == 0:
+                    save_path = os.path.join(self.folder, f"traversed_path_{self.epoch}.npy")
+                    np.save(save_path, self.trajectory)
+                if self.epoch % 50 == 0:
+                    sp = surface_points.detach().cpu().numpy() if torch.is_tensor(surface_points) else np.asarray(surface_points)
+                    np.save(os.path.join(self.folder, f"surface_points_{self.epoch}.npy"), sp)
+
                 if self.mode == EXPLORATION:
                     traj = traj_list[:traj_ind+1]
                 if self.trajectory is None:
@@ -1060,7 +1075,7 @@ class Model():
         if surface_points is not None:
             if isinstance(surface_points, torch.Tensor):
                 surface_points = surface_points.detach().cpu().numpy()
-            ax.scatter(surface_points[:, 0], surface_points[:, 1], c='red', s=1, alpha=1.0, label="surface points", zorder=10)
+            ax.scatter(surface_points[:, 0], surface_points[:, 1], c='red', s=1, alpha=1.0, label="lidar detection", zorder=10)
 
         #! camera triangle
         if camera_matrix is not None:
@@ -1103,7 +1118,9 @@ class Model():
                 robot_radius=0.0105,
                 return_details=True
             )
-
+            print("collision indices", idxs)
+            print("trajectory is: ", traj)
+            idxs = [i for i in idxs if i > 3]
             if col and len(idxs) > 0:
                 cut_idx = idxs[0]
 
@@ -1112,6 +1129,7 @@ class Model():
 
                 # 👉 truncate trajectory IN PLACE
                 self.trajectory = traj[:cut_idx+1]
+                self.trajectory[-1, 1]-=0.003
                 traj_list = None
 
         # ax.scatter(
@@ -1184,7 +1202,7 @@ class Model():
                 label='traversed path'
             )
         # connect last trajectory point to goal (final only)
-        if final and self.trajectory is not None:
+        if final and self.trajectory is not None and collision is False:
             ax.plot(self.trajectory[:, 0], self.trajectory[:, 1], color='red', marker='o', markersize=0.8, linestyle='-', linewidth=1, label='traversed path')
             tar_np = tar if isinstance(tar, np.ndarray) else tar.cpu().numpy()
 
@@ -1194,8 +1212,10 @@ class Model():
                 color='red',
                 linewidth=1
             )
-        if final:
+        if final and not collision:
             ax.set_title(f"Reached Goal at Step {epoch}", fontsize=11)
+        elif collision:
+            ax.set_title(f"Collision with Mesh at Step {epoch}", fontsize=11)
         else:
             ax.set_title(f"Online Planning Step {epoch}", fontsize=11)
         ax.contour(X,Y,TT,np.arange(0,5,0.02), cmap='bone', linewidths=0.3)#0.25
@@ -1205,6 +1225,8 @@ class Model():
             marker='o',
             linestyle='None',
             markersize=6,
+            markerfacecolor='none',
+            markeredgewidth=1.5,
             label='robot'
         )
         handles, labels = ax.get_legend_handles_labels()
@@ -1388,7 +1410,7 @@ class Model():
         dist = np.linalg.norm(current_pos[:2] - goal[:2])
         return dist < tol
     def is_stuck(self, threshold=0.008):
-        if len(self.prev_positions) < 10:
+        if len(self.prev_positions) < 3:
             return False
 
         start = self.prev_positions[0]
@@ -1425,7 +1447,7 @@ def check_collision_with_surface_points(
     traj,
     surface_points,
     robot_radius=0.0105,
-    safety_margin=0.002,
+    safety_margin=0.001,
     return_details=False
 ):
     """
@@ -1444,9 +1466,12 @@ def check_collision_with_surface_points(
     """
 
     traj = np.asarray(traj)
-    surface_points = surface_points.detach().cpu().numpy()
-    surface_points = np.asarray(surface_points)
-
+    # surface_points = surface_points.detach().cpu().numpy()
+    # surface_points = np.asarray(surface_points)
+    if torch.is_tensor(surface_points):
+        surface_points = surface_points.detach().cpu().numpy()
+    else:
+        surface_points = np.asarray(surface_points)
     thresh = robot_radius + safety_margin
 
     collision_indices = []

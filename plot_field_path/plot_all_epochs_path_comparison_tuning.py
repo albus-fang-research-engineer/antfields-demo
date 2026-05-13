@@ -108,7 +108,7 @@ def get_traversed_path(current_epoch):
 # FIGURE 1 — Original epoch panels + colorbar
 # ══════════════════════════════════════════════════════════════════════════════
 n_epochs = len(EPOCHS)
-fig, axes = plt.subplots(1, n_epochs, figsize=(5 * n_epochs, 5),
+fig, axes = plt.subplots(1, n_epochs, figsize=(6 * n_epochs, 6),
                          constrained_layout=False)
 
 legend_handles = None
@@ -145,7 +145,7 @@ for ax, epoch in zip(axes, EPOCHS):
     pcm = ax.pcolormesh(X, Y, speed, cmap='viridis', shading='auto',
                         vmin=0, vmax=1, alpha=0.9)
 
-    ax.plot(traj[:, 0], traj[:, 1], color='pink', linewidth=1.5, alpha=0.9,
+    ax.plot(traj[:, 0], traj[:, 1], color='magenta', linewidth=3.96, alpha=1.0,
             label='Optimized Planned Trajectory')
 
     ax.scatter(traj[-1, 0], traj[-1, 1], color='cyan', marker='*',
@@ -218,12 +218,15 @@ for ax, epoch in zip(axes, EPOCHS):
 
     ax.set_xlim(-0.25, 0.15)
     ax.set_ylim(-0.15, 0.05)
-    ax.set_xlabel('X (m)', fontsize=16)
+    ax.set_xlabel('X (m)', fontsize=21)
     ax.set_title(f'Epoch {epoch}')
 
     if epoch == EPOCHS[0]:                 # only leftmost gets Y label
-        ax.set_ylabel('Y (m)', fontsize=16)
-
+    # if ax is axes[0]:
+        ax.set_ylabel('Y (m)', fontsize=21)
+    else:
+        ax.tick_params(left=False, labelleft=False)   # kill ticks AND labels
+        ax.yaxis.set_major_formatter(plt.NullFormatter())  # belt-and-suspenders
     # ── Grab legend from first non-50 epoch ───────────────────────────────
     if legend_handles is None and epoch != 50:
         desired_order = [
@@ -258,8 +261,8 @@ legend_handles.append(uncertainty_proxy)
 legend_labels.append('Uncertainty Magnitude')
 
 # ── Shared colorbar ───────────────────────────────────────────────────────────
-fig.subplots_adjust(bottom=0.12, top=0.78, left=0.05, right=0.93, wspace=0.15)
-cbar_ax = fig.add_axes([0.94, 0.12, 0.015, 0.66])
+fig.subplots_adjust(bottom=0.12, top=0.86, left=0.05, right=0.93, wspace=0.02)
+cbar_ax = fig.add_axes([0.94, 0.36, 0.012, 0.526])
 cb = fig.colorbar(pcm, cax=cbar_ax)
 cb.set_label('Predicted Speed', fontsize=16)
 cb.ax.tick_params(labelsize=11)
@@ -285,7 +288,7 @@ leg2 = fig.legend(
     fontsize=16
 )
 fig.suptitle('Evolution of Planned Path and Neural Time Field',
-             fontsize=16, fontweight='bold', y=0.9)
+             fontsize=26, fontweight='bold', y=0.9)
 
 if SAVE_PLOT:
     fig.savefig('epoch_all_with_noise.png', dpi=150, bbox_inches='tight')

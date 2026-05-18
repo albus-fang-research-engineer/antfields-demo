@@ -83,10 +83,12 @@ for ax, epoch in zip(axes, EPOCHS):
     Y     = data['Y']
     speed = data['speed'].copy()
 
-    speed[speed < 0.51] -= 0.36
-    speed[speed < 0.76] -= 0.26
-    speed[speed < 0.90] -= 0.026
-    speed[speed > 0.95] += 0.036
+    speed[speed < 0.31] -= 0.36
+    speed[speed < 0.66] -= 0.16
+    speed[speed < 0.76] -= 0.02
+    # speed[speed < 0.90] += 0.16
+    speed[speed > 0.86] += 0.06
+    speed[speed > 0.96] += 0.06
     speed = gaussian_filter(speed, sigma=1.8)
 
     traj      = DISPLAYED_TRAJS[epoch]

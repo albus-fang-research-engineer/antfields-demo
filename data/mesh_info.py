@@ -1,6 +1,6 @@
 import trimesh
 
-mesh = trimesh.load("mesh.obj")
+mesh = trimesh.load("mesh_denmark_normalized.obj")
 
 print(mesh.bounds)
 print("size:", mesh.bounds[1] - mesh.bounds[0])

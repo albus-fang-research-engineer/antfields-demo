@@ -155,7 +155,7 @@ for ax, epoch in zip(axes, EPOCHS):
         sampled[:, 0], sampled[:, 1],
         s=halo_sizes,
         color='#8B0000',      # dark red
-        alpha=0.22,
+        alpha=0.1,
         linewidths=0,
         zorder=4
     )

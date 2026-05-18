@@ -342,7 +342,7 @@ fig.subplots_adjust(bottom=0.07, top=1.09, left=0.06, right=0.93,
                     wspace=0.02, hspace=-0.836)
 
 # Shared colorbar spans both rows
-cbar_ax = fig.add_axes([0.94, 0.396, 0.012, 0.56])
+cbar_ax = fig.add_axes([0.94, 0.396, 0.012, 0.5])
 cb = fig.colorbar(pcm_ref, cax=cbar_ax)
 cb.set_label('Predicted Speed', fontsize=16)
 cb.ax.tick_params(labelsize=11)
@@ -353,7 +353,7 @@ main_labels  = legend_labels[:-1]
 fig.legend(
     main_handles, main_labels,
     loc='upper center',
-    bbox_to_anchor=(0.47, 0.905),
+    bbox_to_anchor=(0.47, 0.83),
     ncol=len(main_labels),
     borderaxespad=0,
     fontsize=16,
@@ -363,14 +363,14 @@ fig.legend(
 fig.legend(
     [legend_handles[-1]], [legend_labels[-1]],
     loc='upper center',
-    bbox_to_anchor=(0.47, 0.865),
+    bbox_to_anchor=(0.47, 0.79),
     ncol=1,
     borderaxespad=0,
     fontsize=16,
 )
 
 fig.suptitle('Evolution of Planned Path and Neural Time Field',
-             fontsize=26, fontweight='bold', y=0.96)
+             fontsize=26, fontweight='bold', y=0.88)
 
 if SAVE_PLOT:
     fig.savefig('combined_epoch_plots.png', dpi=150, bbox_inches='tight')

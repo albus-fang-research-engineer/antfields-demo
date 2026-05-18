@@ -10,7 +10,7 @@ from matplotlib.lines import Line2D
 
 # ── Config ────────────────────────────────────────────────────────────────────
 EPOCHS     = [50, 100, 150, 200, 250]
-SAVE_PLOT  = False
+SAVE_PLOT  = True
 BASE_PATH  = 'chance_constrained_plotting'
 MESH_PATH  = 'gibson/mesh.obj'
 CEILING_Z  = 0.02
@@ -217,7 +217,7 @@ for ax, epoch in zip(axes, EPOCHS):
     ax.yaxis.set_major_formatter(FuncFormatter(lambda val, _: f'{val * 10:.2g}'))
 
     ax.set_xlim(-0.25, 0.15)
-    ax.set_ylim(-0.15, 0.05)
+    ax.set_ylim(-0.12, 0.05)
     ax.set_xlabel('X (m)', fontsize=21)
     ax.set_title(f'Epoch {epoch}')
 
@@ -341,5 +341,110 @@ ax_cmp.legend(
 
 if SAVE_PLOT:
     fig2.savefig('planned_path_comparison.png', dpi=150, bbox_inches='tight')
+PATH_COLORS = plt.cm.turbo(np.linspace(0.1, 0.9, len(EPOCHS)))
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE 2 — Planned-path comparison across epochs (separate figure)
+# ══════════════════════════════════════════════════════════════════════════════
+fig2, ax_cmp = plt.subplots(figsize=(7, 5))
+fig2.subplots_adjust(left=0.12, right=0.78, bottom=0.14, top=0.90)
 
+ax_cmp.set_aspect('equal')
+ax_cmp.set_facecolor('white')
+
+# walls in black for context on white background
+ax_cmp.add_collection(LineCollection(segments_2d, colors='black',
+                                     linewidths=0.8, alpha=0.9, zorder=2))
+
+# distinct color per epoch
+path_colors = PATH_COLORS
+
+last_traj = None
+for epoch, color in zip(EPOCHS, path_colors):
+    traj_i = DISPLAYED_TRAJS[epoch]
+    ax_cmp.plot(traj_i[:, 0], traj_i[:, 1], color=color, linewidth=2.2,
+                alpha=0.95, label=f'Epoch {epoch}', zorder=4)
+    last_traj = traj_i
+
+# goal marker (goal is shared across epochs)
+if last_traj is not None:
+    ax_cmp.scatter(last_traj[-1, 0], last_traj[-1, 1], color='cyan',
+                   marker='*', s=260, zorder=5,
+                   edgecolors='black', linewidths=0.5, label='Goal')
+
+ax_cmp.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f'{v * 10:.2g}'))
+ax_cmp.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f'{v * 10:.2g}'))
+ax_cmp.set_xlim(-0.25, 0.15)
+ax_cmp.set_ylim(-0.15, 0.05)
+ax_cmp.set_xlabel('X (m)', fontsize=14)
+ax_cmp.set_ylabel('Y (m)', fontsize=14)
+ax_cmp.set_title('Planned Path Across Epochs', fontsize=15, fontweight='bold')
+
+# Legend outside the plot, on the right
+ax_cmp.legend(
+    loc='center left',
+    bbox_to_anchor=(1.02, 0.5),
+    fontsize=11,
+    framealpha=0.9,
+    borderaxespad=0,
+)
+
+if SAVE_PLOT:
+    fig2.savefig('planned_path_comparison.png', dpi=150, bbox_inches='tight')
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE 3 — Minimal zoomed path comparison (no legend/title/ticks/labels)
+# ══════════════════════════════════════════════════════════════════════════════
+fig3, ax_zoom = plt.subplots(figsize=(6, 5))
+
+ax_zoom.set_aspect('equal')
+ax_zoom.set_facecolor('white')
+
+# walls for context (comment out if you want truly only paths)
+ax_zoom.add_collection(LineCollection(segments_2d, colors='black',
+                                      linewidths=0.5, alpha=0.7, zorder=2))
+
+# same colors as Figure 2, thinner lines
+# path_colors_zoom = plt.cm.plasma(np.linspace(0.15, 0.9, len(EPOCHS)))
+path_colors_zoom = PATH_COLORS
+all_pts = []
+for epoch, color in zip(EPOCHS, path_colors_zoom):
+    traj_i = DISPLAYED_TRAJS[epoch]
+    ax_zoom.plot(traj_i[:, 0], traj_i[:, 1], color=color, linewidth=3.66,
+                 alpha=0.95, zorder=4)
+    all_pts.append(traj_i)
+
+# auto-zoom to tight bounding box around the paths with a small pad
+# all_pts = np.concatenate(all_pts, axis=0)
+# pad_x, pad_y = 0.01, 0.01
+# ax_zoom.set_xlim(all_pts[:, 0].min() - pad_x, all_pts[:, 0].max() + pad_x)
+# ax_zoom.set_ylim(all_pts[:, 1].min() - pad_y, all_pts[:, 1].max() + pad_y)
+# auto-zoom, but cropped to the right portion of the paths
+all_pts = np.concatenate(all_pts, axis=0)
+pad_x, pad_y = 0.01, 0.01
+
+zoom_frac = 0.25   # 0 = full range, higher = more zoom into the right
+x_min, x_max = all_pts[:, 0].min(), all_pts[:, 0].max()
+x_cut = x_min + zoom_frac * (x_max - x_min)
+
+# tighten y to just the points that fall in the new x window
+visible = all_pts[all_pts[:, 0] >= x_cut]
+ax_zoom.set_xlim(x_cut - pad_x, x_max + pad_x)
+y_shift = 0.01   # positive = move view up, negative = move down
+ax_zoom.set_ylim(visible[:, 1].min() - pad_y + y_shift,
+                 visible[:, 1].max() + pad_y + y_shift)
+# strip everything: ticks, labels, spines, title
+ax_zoom.set_xticks([])
+ax_zoom.set_yticks([])
+ax_zoom.set_xlabel('')
+ax_zoom.set_ylabel('')
+ax_zoom.set_title('')
+for spine in ax_zoom.spines.values():
+    spine.set_visible(False)
+
+fig3.subplots_adjust(left=0.02, right=0.98, bottom=0.02, top=0.98)
+
+if SAVE_PLOT:
+    fig3.savefig('planned_path_zoomed.png', dpi=150, bbox_inches='tight')
+
+plt.show()
 plt.show()

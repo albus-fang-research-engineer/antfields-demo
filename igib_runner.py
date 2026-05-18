@@ -80,7 +80,7 @@ def batched_min_mean_distance(model, query_pts, local_obs):
 
     return min_mu
 
-def batched_cvar_distance(model, query_pts, local_obs, alpha=0.46, tail=0.1):
+def batched_cvar_distance(model, query_pts, local_obs, alpha=0.5, tail=0.1):
 
     device = model.dist_device
 
@@ -447,16 +447,16 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
     # return points[0:5000], speeds[0:5000], bounds[0:5000], obstacle_points
-    return points[0:2366], speeds[0:2366], bounds[0:2366], obstacle_points
+    return points[0:2066], speeds[0:2066], bounds[0:2066], obstacle_points
 
 def sample_points_from_pos(model, position, scale_factor=1):
     """
     configs
     """
-    n_rays = 7000 #5000
+    n_rays = 6000 #5000
     dist_behind_surf = 0. #0.2
-    n_strat_samples = 22 # 20
-    n_surf_samples = 10  #8
+    n_strat_samples = 20 # 20
+    n_surf_samples = 8  #8
     min_depth = 0.01
     max_depth = 0.25
     dist_behind_surf *= scale_factor

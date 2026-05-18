@@ -31,13 +31,15 @@ def solve_step(p0, p_goal, obstacle_points, model, device, epoch, path_start, fo
     # print("sigma_virtual = ", sigma)
     # print("\n sigma_start = ", sigma_start)
     sigma = sigma_start
-    print("\n--- Chance constraint debug ---")
-    print("robot:", p0)
-    print("goal:", p_goal)
-    print("min(mu):", np.min(mu))
-    print("min(risk):", np.min(mu - BETA * sigma))
-    print("mean(sigma):", np.mean(sigma))
-    # print("grad norms:", np.linalg.norm(grad, axis=1))
+
+    if folder is not None:
+        print("\n--- Chance constraint debug ---")
+        print("robot:", p0)
+        print("goal:", p_goal)
+        print("min(mu):", np.min(mu))
+        print("min(risk):", np.min(mu - BETA * sigma))
+        print("mean(sigma):", np.mean(sigma))
+        # print("grad norms:", np.linalg.norm(grad, axis=1))
     def objective(x):
         dp = x[:2]
         slack = x[2:]

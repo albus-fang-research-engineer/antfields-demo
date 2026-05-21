@@ -235,16 +235,16 @@ def sample_points_and_speeds_from_pos_new(model, position, minimum, maximum, num
     # print(bounds)
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
-    return points[0:5000], speeds[0:5000], bounds[0:5000], surface_points
-
+    # return points[0:5000], speeds[0:5000], bounds[0:5000], surface_points
+    return points[0:4500], speeds[0:4500], bounds[0:4500], surface_points
 def sample_points_from_pos(model, position, scale_factor=1):
     """
     configs
     """
-    n_rays = 5000 #5000
+    n_rays = 6000 #5000
     dist_behind_surf = 0. #0.2
-    n_strat_samples = 20 #20
-    n_surf_samples = 8 #8
+    n_strat_samples = 22 #20
+    n_surf_samples = 10 #8
     min_depth = 0.01
     max_depth = 0.25
     dist_behind_surf *= scale_factor
@@ -324,6 +324,7 @@ def get_bounds_from_pts(sample_pts):
     # dists -= 0
     # filtered_bounds -= 0.0305 #! subtract some value to make the bounds smaller
     filtered_bounds -= 0.0000001 
+    # filtered_bounds -= 0.01
     #? add a ceiling and floor to the bounds
     # dist_ceil = torch.abs(sample_pts["pc"][:, :, 2]-2.3)
     # dist_floor = torch.abs(sample_pts["pc"][:, :, 2]+0.02)

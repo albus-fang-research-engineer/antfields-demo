@@ -35,7 +35,7 @@ def main():
     renderer = None
     if mode in [EXPLORATION]:
         from igibson.render.mesh_renderer.mesh_renderer_cpu import MeshRenderer
-        meshpath = "data/mesh.obj"
+        meshpath = "data/mesh_superior_normalized.obj"
         
         renderer = MeshRenderer(width=1200, height=680)
         renderer.load_object(meshpath, scale=np.array([1, 1, 1]) * scale_factor)
@@ -56,6 +56,7 @@ def main():
     global_run_id = 0
     while True:
         global_folder = os.path.join(global_base, f"TUNED_BASELINE_GLOBAL_RUN_{global_run_id}")
+        # global_folder = os.path.join(global_base, f"PAIR1_DEMO_{global_run_id}")
         if not os.path.exists(global_folder):
             os.makedirs(global_folder)
             break
@@ -63,14 +64,16 @@ def main():
 
     print(f"Global run folder: {global_folder}")
     lengths = []
-    num_runs = 50
+    num_runs = 20
     collisions = 0
+    all_planning_times = []
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")
 
         model = md.Model(global_folder, 3, scale_factor, mode, renderer, device='cuda:0')
         
         result = model.train()
+        all_planning_times.extend(result["planning_times"])
         if result["collision"]:
             collisions += 1
             print("Run ended with collision")
@@ -84,11 +87,14 @@ def main():
         #     print("Warning: run did not reach goal")
 
     lengths = np.array(lengths)
-
+    planning_times = np.array(all_planning_times)
     print("\n===== FINAL RESULTS =====")
     print(f"Runs completed: {len(lengths)}")
     print(f"Mean path length: {np.mean(lengths) * 10:.4f} m")
     print(f"Std: {np.std(lengths)*10:.4f} m")
     print(f"Collision rate: {collisions / num_runs:.2f}")
+    print(f"Planning calls:     {len(planning_times)}")
+    print(f"Mean planning time: {np.mean(planning_times)*1000:.2f} ms")
+    print(f"Std planning time:  {np.std(planning_times)*1000:.2f} ms")
 if __name__ == '__main__':
     main()

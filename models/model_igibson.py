@@ -6,7 +6,7 @@
 # Licensed under the Non-Commercial Open Source Software License.
 # You may not use this file except in compliance with the License.
 # A copy of the License is included in the root of this repository.
-
+import cProfile, pstats, io
 import matplotlib
 import numpy as np
 import math
@@ -429,7 +429,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0166  #0.1
+        self.maximum = 0.0126  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -479,17 +479,34 @@ class Model():
         self.fixed_goal = torch.tensor([-0.22977, -0.085229, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.15836, -0.125869, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.229774, -0.086229, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.27321, -0.0265, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.27321, -0.0265, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
 
         ######################    Denmark      ############################
-        self.fixed_goal = torch.tensor([-0.1509, 0.103031, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.2605, 0.03898, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.130732, 0.0708056, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.036236, 0.215998, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.263, 0.0489, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1509, 0.103031, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.2605, 0.03898, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.130732, 0.0708056, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.036236, 0.215998, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.263, 0.0489, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
+        ######################    Superior      ############################
+        self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.069989, 0.0141856, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.11836, 0.05037, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.050712, 0.21064, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.22915, 0.0680198, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.1217, -0.0936, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.19131, 0.00039, 0.0], dtype=torch.float32)
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
-        self.enable_plot = True
+        self.enable_plot = False
     def gradient(self, y, x, create_graph=True):                                                               
                                                                                   
         grad_y = torch.ones_like(y)                                                                 
@@ -631,15 +648,33 @@ class Model():
         initial_view = Tensor([-0.29873, -0.15181, 0.0])
         initial_view = Tensor([-0.306212, 0.160368, 0.0])
         initial_view = Tensor([-0.25277, 0.14011, 0.0])
-        initial_view = Tensor([-0.16236, -0.123969, 0.0])
-        initial_view = Tensor([-0.30698, -0.29587, 0.0])
+        # initial_view = Tensor([-0.16236, -0.123969, 0.0])
+        # initial_view = Tensor([-0.30698, -0.29587, 0.0])
 
         ################## Denmark ##################
-        initial_view = Tensor([-0.03756, -0.01000, 0.0])
-        initial_view = Tensor([-0.0164155, 0.201127, 0.0])
-        initial_view = Tensor([-0.0101138, -0.02388, 0.0])
-        initial_view = Tensor([-0.26375, 0.0504, 0.0])
-        initial_view = Tensor([-0.030326, 0.18998, 0.0])
+        # initial_view = Tensor([-0.03756, -0.01000, 0.0])
+        # initial_view = Tensor([-0.0164155, 0.201127, 0.0])
+        # initial_view = Tensor([-0.0101138, -0.02388, 0.0])
+        # initial_view = Tensor([-0.26375, 0.0504, 0.0])
+        # initial_view = Tensor([-0.030326, 0.18998, 0.0])
+        initial_view = Tensor([-0.20589, 0.104213, 0.0])
+        initial_view = Tensor([-0.1027, 0.103383, 0.0])
+        initial_view = Tensor([-0.3620, 0.160228, 0.0])
+        initial_view = Tensor([-0.266721, 0.216986, 0.0])
+        initial_view = Tensor([-0.390377, 0.101086, 0.0])
+
+        ################## Superior ##################
+        initial_view = Tensor([-0.0797515, -0.034389, 0.0])
+        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        initial_view = Tensor([-0.0615467, -0.173793, 0.0])
+        initial_view = Tensor([0.01909, -0.10586, 0.0])
+        initial_view = Tensor([0.02132, -0.102299, 0.0])
+        initial_view = Tensor([0.13973, -0.105728, 0.0])
+        initial_view = Tensor([0.0344291, 0.0116167, 0.0])
+        initial_view = Tensor([0.02166, 0.11691, 0.0])
+        initial_view = Tensor([0.176635, 0.09965, 0.0])
+        initial_view = Tensor([0.22952, -0.0374228, 0.0])
+        initial_view = Tensor([0.236685, -0.040921, 0.0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file
@@ -826,6 +861,21 @@ class Model():
                 # Optimize the full trajectory
                 start = traj_list[0]
                 path = traj_list[1:]
+                profile_this = (self.frame_idx == 0)
+
+                if profile_this:
+                    # Create the profile directory once per run, reuse for any subsequent dumps
+                    if not hasattr(self, "_profile_dir"):
+                        stamp = (datetime.utcnow() - timedelta(hours=4)).strftime("%m_%d_%H_%M")
+                        self._profile_dir = f"/antfields/time_profiles/time_profile_{stamp}"
+                        os.makedirs(self._profile_dir, exist_ok=True)
+                        print(f"[profile] saving profiles to {self._profile_dir}")
+
+                    profiler = cProfile.Profile()
+                    profiler.enable()
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+
                 t2 = time.perf_counter()
                 optimized_traj_list = rollout_optimized(
                     start,
@@ -837,7 +887,30 @@ class Model():
                     epoch = self.epoch,
                     folder=self.folder
                 )
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
                 t3 = time.perf_counter()
+                if profile_this:
+                    profiler.disable()
+                    prof_path = f"{self._profile_dir}/rollout_profile_epoch_{self.epoch}.prof"
+                    profiler.dump_stats(prof_path)
+                    print(f"[profile] saved {prof_path}")
+
+                    # Also dump a readable text summary alongside the .prof
+                    txt_path = f"{self._profile_dir}/rollout_profile_epoch_{self.epoch}.txt"
+                    with open(txt_path, "w") as f:
+                        ps = pstats.Stats(profiler, stream=f).sort_stats("cumulative")
+                        ps.print_stats(40)
+                        f.write("\n--- by tottime (self-time, excludes callees) ---\n")
+                        ps = pstats.Stats(profiler, stream=f).sort_stats("tottime")
+                        ps.print_stats(30)
+
+                    # And print a short version inline for quick eyeballing
+                    s = io.StringIO()
+                    pstats.Stats(profiler, stream=s).sort_stats("cumulative").print_stats(20)
+                    print(s.getvalue())
+
+
                 # --- compute durations ---
                 policy_time = t1 - t0
                 optimizer_time = t3 - t2

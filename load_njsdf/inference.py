@@ -50,6 +50,99 @@ def mu_sigma_grad_nn(robot_xy, obstacle_points, model, device, K=20, skip=5):
     else:
         obstacle_points = obstacle_points.to(device).float()
 
+    # IMPORTANT: do NOT do robot_xy.requires_grad_(True) here.
+    # net_input has to be the leaf for the .sum() trick to work.
+    N = obstacle_points.shape[0]
+    robot_rep = robot_xy.view(1, 2).expand(N, 2).contiguous()
+    net_input = torch.cat([robot_rep, obstacle_points], dim=1)
+    net_input.requires_grad_(True)
+
+    mu, var = predict_mu_var(model, net_input)
+    mu = mu.view(-1)
+    sigma = torch.sqrt(torch.clamp(var.view(-1), min=1e-12))
+
+    with torch.no_grad():
+        risk = mu - BETA * sigma
+        K = min(K, N)
+        idx = torch.topk(risk, k=K, largest=False).indices
+        idx = idx[torch.argsort(risk[idx])][skip:]
+
+    # ---- ONE actual backward pass ----
+    # For a row-independent MLP, d(mu_i)/d(net_input_j) = 0 for i != j.
+    # So grad(mu.sum(), net_input) returns an (N, 4) matrix where row i
+    # is d(mu_i)/d(net_input_i). Columns 0:2 are d(mu_i)/d(robot_xy_part_of_input_i),
+    # which equals d(mu_i)/d(robot_xy) since net_input[i, :2] is just a copy of robot_xy.
+    grad_full = torch.autograd.grad(mu.sum(), net_input)[0]   # (N, 4)
+    grad_k = grad_full[idx, :2]                                # (K-skip, 2)
+
+    mu_k = mu[idx]
+    sigma_k = sigma[idx]
+
+    return (mu_k.detach().cpu().numpy(),
+            sigma_k.detach().cpu().numpy(),
+            grad_k.detach().cpu().numpy(),
+            obstacle_points[idx].detach().cpu().numpy())
+
+def mu_sigma_grad_nn_faster(robot_xy, obstacle_points, model, device, K=20, skip=5):
+    robot_xy = robot_xy[:2]
+    obstacle_points = obstacle_points[:, :2]
+
+    if not torch.is_tensor(robot_xy):
+        robot_xy = torch.tensor(robot_xy, dtype=torch.float32, device=device)
+    else:
+        robot_xy = robot_xy.to(device).float()
+
+    if not torch.is_tensor(obstacle_points):
+        obstacle_points = torch.tensor(obstacle_points, dtype=torch.float32, device=device)
+    else:
+        obstacle_points = obstacle_points.to(device).float()
+
+    robot_xy = robot_xy.requires_grad_(True)
+
+    N = obstacle_points.shape[0]
+    robot_rep = robot_xy.view(1, 2).expand(N, 2)
+    net_input = torch.cat([robot_rep, obstacle_points], dim=1)
+
+    mu, var = predict_mu_var(model, net_input)
+    mu = mu.view(-1)
+    sigma = torch.sqrt(torch.clamp(var.view(-1), min=1e-12))
+
+    risk = mu - BETA * sigma
+    K = min(K, N)
+    idx = torch.topk(risk, k=K, largest=False).indices
+    idx = idx[torch.argsort(risk[idx])]
+    idx = idx[skip:]
+
+    mu_k = mu[idx]
+    sigma_k = sigma[idx]
+
+    # ---- Batched backward via vmap ----
+    K_eff = mu_k.shape[0]
+    I = torch.eye(K_eff, device=device)
+    grad_k = torch.autograd.grad(
+        mu_k, robot_xy,
+        grad_outputs=I,
+        is_grads_batched=True,
+    )[0]  # (K_eff, 2)
+
+    return (mu_k.detach().cpu().numpy(),
+            sigma_k.detach().cpu().numpy(),
+            grad_k.detach().cpu().numpy(),
+            obstacle_points[idx].detach().cpu().numpy())
+def mu_sigma_grad_nn_default(robot_xy, obstacle_points, model, device, K=20, skip=5):
+    robot_xy = robot_xy[:2]
+    obstacle_points = obstacle_points[:, :2]
+
+    if not torch.is_tensor(robot_xy):
+        robot_xy = torch.tensor(robot_xy, dtype=torch.float32, device=device)
+    else:
+        robot_xy = robot_xy.to(device).float()
+
+    if not torch.is_tensor(obstacle_points):
+        obstacle_points = torch.tensor(obstacle_points, dtype=torch.float32, device=device)
+    else:
+        obstacle_points = obstacle_points.to(device).float()
+
     robot_xy = robot_xy.requires_grad_(True)
 
     N = obstacle_points.shape[0]

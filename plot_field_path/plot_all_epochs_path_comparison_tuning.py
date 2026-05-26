@@ -409,7 +409,7 @@ path_colors_zoom = PATH_COLORS
 all_pts = []
 for epoch, color in zip(EPOCHS, path_colors_zoom):
     traj_i = DISPLAYED_TRAJS[epoch]
-    ax_zoom.plot(traj_i[:, 0], traj_i[:, 1], color=color, linewidth=3.66,
+    ax_zoom.plot(traj_i[:, 0], traj_i[:, 1], color=color, linewidth=4.26,
                  alpha=0.95, zorder=4)
     all_pts.append(traj_i)
 

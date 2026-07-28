@@ -80,7 +80,7 @@ def batched_min_mean_distance(model, query_pts, local_obs):
 
     return min_mu
 
-def batched_cvar_distance(model, query_pts, local_obs, alpha=0.5, tail=0.1):
+def batched_cvar_distance(model, query_pts, local_obs, alpha=0.45, tail=0.1):
 
     device = model.dist_device
 

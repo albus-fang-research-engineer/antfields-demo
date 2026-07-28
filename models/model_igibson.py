@@ -387,7 +387,7 @@ class Model():
             run_id += 1
 
         self.folder = run_folder
-        # self.folder = None
+        self.folder = None
         # Pass the JSON information
         self.Params['Device'] = device
         self.Params['Pytorch Amp (bool)'] = False
@@ -429,7 +429,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0126  #0.1
+        self.maximum = 0.0156  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -447,38 +447,38 @@ class Model():
         #####################    MAP1      ############################
         self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.15,  0.0396, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.2816,   0.1116,  0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.05626768, -0.00738018, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.31,  0.161, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.31,  0.261, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.186, -0.086, 0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.15,  0.0396, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.2816,   0.1116,  0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.05626768, -0.00738018, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.31,  0.161, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.31,  0.261, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.186, -0.086, 0], dtype=torch.float32)
 
         ######################    MAP2      ############################
 
         self.fixed_goal = torch.tensor([0.0186, 0.06, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([0.062, -0.026, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.0296, -0.236, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.055632,  -0.1266, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.009981,  0.339293, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.0397859,  -0.000756, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.0770818,  -0.0360409, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.0615918, 0.21549, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.13926, 0.2283, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.089705, 0.365, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.06297, 0.2813, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.0296, -0.236, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.055632,  -0.1266, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.009981,  0.339293, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.0397859,  -0.000756, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.0770818,  -0.0360409, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.0615918, 0.21549, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.13926, 0.2283, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.089705, 0.365, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.06297, 0.2813, 0.0], dtype=torch.float32)
 
         ######################    Allensville      ############################
-        self.fixed_goal = torch.tensor([-0.1992, -0.0852, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.1892, -0.0852, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.2712, 0.098632, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([0.01468, -0.20258, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.2762, -0.2695, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.1437, -0.0755, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.22977, -0.085229, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.15836, -0.125869, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.229774, -0.086229, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.2762, -0.2695, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.1437, -0.0755, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.22977, -0.085229, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.15836, -0.125869, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.229774, -0.086229, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.27321, -0.0265, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
 
@@ -488,11 +488,11 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.130732, 0.0708056, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.036236, 0.215998, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.263, 0.0489, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
         ######################    Superior      ############################
         self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
@@ -619,35 +619,35 @@ class Model():
         ################## Map 1 ##################
         initial_view = Tensor([-0.12, -0.046, 0])
         initial_view = Tensor([ 0.042176,  -0.02060163, 0.0])
-        initial_view = Tensor([0.3608916,  0.171, 0.0]) #initial_view = Tensor([0.36,  0.151, 0.0])
+        # initial_view = Tensor([0.3608916,  0.171, 0.0]) #initial_view = Tensor([0.36,  0.151, 0.0])
         initial_view = Tensor([-0.05826768, -0.00738018, 0.0])
-        initial_view = Tensor([0.07269316, -0.05, 0.0])
-        initial_view = Tensor([0.16602385, 0.0396, 0.0 ])
-        initial_view = Tensor([-0.1886,   0.12296,  0.0])
-        initial_view = Tensor([0.19120717,   0.1996912,  0.0])
-        initial_view = Tensor([0.1898616,   0.1986723,  0.0])
-        initial_view = Tensor([ 0.0096,  -0.0186, 0.0])
+        # initial_view = Tensor([0.07269316, -0.05, 0.0])
+        # initial_view = Tensor([0.16602385, 0.0396, 0.0 ])
+        # initial_view = Tensor([-0.1886,   0.12296,  0.0])
+        # initial_view = Tensor([0.19120717,   0.1996912,  0.0])
+        # initial_view = Tensor([0.1912,   0.1996723,  0.0])
+        # initial_view = Tensor([ 0.0096,  -0.0186, 0.0])
         ################## Map 2 ##################
         initial_view = Tensor([ 0.0616,  -0.0216, 0.0])
         initial_view = Tensor([ 0.01103258,  -0.116, 0.0])
-        initial_view = Tensor([ -0.0036,  -0.0326, 0.0])
-        initial_view = Tensor([0.02538, -0.22976, 0.0])
-        initial_view = Tensor([0.15026, 0.23365, 0.0])
-        initial_view = Tensor([-0.0136337, 0.145519, 0.0])
-        initial_view = Tensor([-0.0491679, -0.129549, 0.0])
-        initial_view = Tensor([0.06298, 0.281353, 0.0])
-        initial_view = Tensor([-0.02029, 0.352, 0.0])
-        initial_view = Tensor([-0.016616, 0.2232728, 0.0])
-        initial_view = Tensor([0.164693, 0.203633, 0.0])
+        # initial_view = Tensor([ -0.0036,  -0.0326, 0.0])
+        # initial_view = Tensor([0.02538, -0.22976, 0.0])
+        # initial_view = Tensor([0.15026, 0.23365, 0.0])
+        # initial_view = Tensor([-0.0136337, 0.145519, 0.0])
+        # initial_view = Tensor([-0.0491679, -0.129549, 0.0])
+        # initial_view = Tensor([0.06298, 0.281353, 0.0])
+        # initial_view = Tensor([-0.02029, 0.352, 0.0])
+        # initial_view = Tensor([-0.016616, 0.2232728, 0.0])
+        # initial_view = Tensor([0.164693, 0.203633, 0.0])
         ################## Allensville ##################
-        initial_view = Tensor([0.0536, -0.2066, 0.0])
+        initial_view = Tensor([0.0536, -0.1866, 0.0])
         initial_view = Tensor([-0.15136, -0.15586, 0.0])
         initial_view = Tensor([-0.22977, -0.085229, 0.0])
-        initial_view = Tensor([-0.3755, -0.3741, 0.0])
-        initial_view = Tensor([-0.00725, -0.31602, 0.0])
-        initial_view = Tensor([-0.29873, -0.15181, 0.0])
-        initial_view = Tensor([-0.306212, 0.160368, 0.0])
-        initial_view = Tensor([-0.25277, 0.14011, 0.0])
+        # initial_view = Tensor([-0.3755, -0.3741, 0.0])
+        # initial_view = Tensor([-0.00725, -0.31602, 0.0])
+        # initial_view = Tensor([-0.29873, -0.15181, 0.0])
+        # initial_view = Tensor([-0.306212, 0.160368, 0.0])
+        # initial_view = Tensor([-0.25277, 0.14011, 0.0])
         # initial_view = Tensor([-0.16236, -0.123969, 0.0])
         # initial_view = Tensor([-0.30698, -0.29587, 0.0])
 
@@ -657,11 +657,11 @@ class Model():
         # initial_view = Tensor([-0.0101138, -0.02388, 0.0])
         # initial_view = Tensor([-0.26375, 0.0504, 0.0])
         # initial_view = Tensor([-0.030326, 0.18998, 0.0])
-        initial_view = Tensor([-0.20589, 0.104213, 0.0])
-        initial_view = Tensor([-0.1027, 0.103383, 0.0])
-        initial_view = Tensor([-0.3620, 0.160228, 0.0])
-        initial_view = Tensor([-0.266721, 0.216986, 0.0])
-        initial_view = Tensor([-0.390377, 0.101086, 0.0])
+        # initial_view = Tensor([-0.20589, 0.104213, 0.0])
+        # initial_view = Tensor([-0.1027, 0.103383, 0.0])
+        # initial_view = Tensor([-0.3620, 0.160228, 0.0])
+        # initial_view = Tensor([-0.266721, 0.216986, 0.0])
+        # initial_view = Tensor([-0.390377, 0.101086, 0.0])
 
         ################## Superior ##################
         initial_view = Tensor([-0.0797515, -0.034389, 0.0])

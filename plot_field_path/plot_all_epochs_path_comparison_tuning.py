@@ -10,7 +10,7 @@ from matplotlib.lines import Line2D
 
 # ── Config ────────────────────────────────────────────────────────────────────
 EPOCHS     = [50, 100, 150, 200, 250]
-SAVE_PLOT  = True
+SAVE_PLOT  = False
 BASE_PATH  = 'chance_constrained_plotting'
 MESH_PATH  = 'gibson/mesh.obj'
 CEILING_Z  = 0.02

@@ -9,3 +9,6 @@ venv/
 blender_docker/
 *.npz
 *.pt
+time_profiles/
+
+*.mp4

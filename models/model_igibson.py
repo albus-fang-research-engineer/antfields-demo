@@ -846,7 +846,8 @@ class Model():
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
                     # --- policy timing ---
                     t0 = time.perf_counter()
-                    traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0) 
+                    # traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0) 
+                    traj_list, traj_ind = self.policy_goal_direct_mppi(self.cur_view.detach().clone().cpu().numpy(), height=0, obstacle_points=obstacle_points)
                     t1 = time.perf_counter()
                     # traj_list is the full gradient-descent trajectory from current position to the selected unexplored block. 
                     # traj_ind is the index along the trajectory where accumulated path length ≈ 0.05 meters.
@@ -1736,7 +1737,160 @@ class Model():
 
         return traj.detach().numpy()
     
-
+    def predict_trajectory_mppi(
+            self,
+            Xsrc,
+            Xtar,
+            step_size=0.005,        # fixed arc-length of each EXECUTED step (match your 0.005)
+            horizon=12,             # MPPI look-ahead (# steps); longer = sees past noisy T patches
+            num_samples=384,        # rollouts per replan
+            temperature=0.03,       # MPPI lambda: smaller -> sharper (greedier) softmin
+            noise_sigma=0.6,        # heading-perturbation std [rad]
+            w_run=1.0,              # weight on accumulated running time (obstacle margin)
+            w_term=1.0,             # weight on terminal cost-to-go T
+            w_smooth=0.02,          # heading-smoothness penalty
+            speed_floor=1e-3,       # clamp so 1/speed can't blow up
+            tol=0.006,              # goal tolerance (matches reached_goal)
+            max_steps=400,
+            stall_patience=40,      # break if value stops improving for this many steps
+            obstacle_points=None,   # optional (M,3) tensor -> adds a cheap collision barrier
+            obs_radius=0.0105,      # robot radius for the barrier
+            obs_margin=0.01,        # extra safety buffer
+            w_obs=5.0,              # barrier weight
+            obs_subsample=2000,     # cap obstacle pts used per replan (keeps cdist cheap)
+    ):
+        device = self.Params['Device']
+        dim = self.dim
+        K, H = num_samples, horizon
+    
+        Xsrc = torch.as_tensor(Xsrc, dtype=torch.float32, device=device)
+        Xtar = torch.as_tensor(Xtar, dtype=torch.float32, device=device)
+    
+        height = Xsrc[2].clone()
+        start_xy = Xsrc.clone()          # fixed source reference for the speed field
+        goal = Xtar.clone()
+        x = Xsrc.clone()                 # current TRUE state
+        traj = [x.detach().cpu().numpy()]
+    
+        # optional obstacle barrier setup (xy only; planner is planar)
+        obs_xy = None
+        if obstacle_points is not None and w_obs > 0:
+            obs = obstacle_points
+            if not torch.is_tensor(obs):
+                obs = torch.as_tensor(obs, dtype=torch.float32)
+            obs = obs.to(device)[:, :2]
+            if obs.shape[0] > obs_subsample:
+                sel = torch.randperm(obs.shape[0], device=device)[:obs_subsample]
+                obs = obs[sel]
+            obs_xy = obs
+            obs_thresh = obs_radius + obs_margin
+    
+        # nominal heading sequence, initialised straight at the goal
+        to_goal = goal[:2] - x[:2]
+        theta_nom = torch.atan2(to_goal[1], to_goal[0]).repeat(H)  # (H,)
+    
+        best_d = torch.norm(x[:2] - goal[:2])
+        stall = 0
+    
+        for _ in range(max_steps):
+            d = torch.norm(x[:2] - goal[:2])
+            if d < tol:
+                break
+            # monotone-progress guard: bail if we're wandering (cut-locus trap etc.)
+            if d < best_d - 1e-4:
+                best_d = d
+                stall = 0
+            else:
+                stall += 1
+                if stall > stall_patience:
+                    break
+    
+            # ---- sample K heading sequences around the nominal ----
+            eps = noise_sigma * torch.randn(K, H, device=device)
+            theta = theta_nom.unsqueeze(0) + eps                        # (K,H)
+    
+            # ---- roll out (single integrator, fixed arc-length) ----
+            dirs = torch.stack((torch.cos(theta), torch.sin(theta)), dim=-1)   # (K,H,2)
+            xy = x[:2].view(1, 1, 2) + torch.cumsum(step_size * dirs, dim=1)    # (K,H,2)
+            z = height.view(1, 1, 1).expand(K, H, 1)
+            states = torch.cat((xy, z), dim=-1)                         # (K,H,3)
+    
+            # ---- running cost: accumulated min-time = sum step_size / speed ----
+            # (this is the expensive query; set w_run=0 to skip and lean on the
+            #  obstacle barrier + terminal T instead.)
+            if w_run > 0:
+                flat = states.reshape(K * H, dim)
+                src_rep = start_xy.view(1, dim).expand(K * H, dim)
+                spd = self.Speed(torch.cat((src_rep, flat), dim=1)).detach().reshape(K, H)
+                spd = spd.clamp(min=speed_floor)
+                run_cost = (step_size / spd).sum(dim=1)                 # (K,)
+            else:
+                run_cost = torch.zeros(K, device=device)
+    
+            # ---- terminal cost-to-go: learned time field from x_H to goal ----
+            x_H = states[:, -1, :]                                      # (K,3)
+            goal_rep = goal.view(1, dim).expand(K, dim)
+            term_cost = self.TravelTimes(torch.cat((x_H, goal_rep), dim=1)).detach()  # (K,)
+    
+            # ---- smoothness: penalise heading changes within the horizon ----
+            dtheta = theta[:, 1:] - theta[:, :-1]
+            smooth_cost = (dtheta ** 2).sum(dim=1)                      # (K,)
+    
+            cost = w_run * run_cost + w_term * term_cost + w_smooth * smooth_cost
+    
+            # ---- optional cheap collision barrier (no net eval) ----
+            if obs_xy is not None:
+                flat_xy = states[..., :2].reshape(K * H, 2)             # (K*H,2)
+                dmin = torch.cdist(flat_xy, obs_xy).min(dim=1).values.reshape(K, H)
+                viol = (obs_thresh - dmin).clamp(min=0.0)               # (K,H)
+                cost = cost + w_obs * (viol ** 2).sum(dim=1)
+    
+            # ---- MPPI softmin weights ----
+            cost = cost - cost.min()
+            w = torch.softmax(-cost / temperature, dim=0)              # (K,)
+    
+            # ---- circular weighted mean of headings (wraparound-safe) ----
+            cos_bar = (w.unsqueeze(1) * torch.cos(theta)).sum(dim=0)   # (H,)
+            sin_bar = (w.unsqueeze(1) * torch.sin(theta)).sum(dim=0)
+            theta_upd = torch.atan2(sin_bar, cos_bar)                  # (H,)
+    
+            # ---- execute first control, advance TRUE state ----
+            h0 = theta_upd[0]
+            x = x.clone()
+            x[:2] = x[:2] + step_size * torch.stack((torch.cos(h0), torch.sin(h0)))
+            x[2] = height
+            traj.append(x.detach().cpu().numpy())
+    
+            # ---- warm-start: shift nominal sequence forward one step ----
+            theta_nom = torch.cat((theta_upd[1:], theta_upd[-1:].clone()))
+    
+        traj.append(goal.detach().cpu().numpy())
+        return np.array(traj)
+    
+    
+    def policy_goal_direct_mppi(self, current_location, height, obstacle_points=None):
+        """Drop-in replacement for policy_goal_direct that uses the MPPI planner.
+        Same return contract: (traj_list, index) where index is the point at which
+        accumulated arc-length ~= 0.05 m."""
+        goal = self.fixed_goal.detach().cpu().numpy().copy()
+        goal[2] = height
+    
+        traj_list = self.predict_trajectory_mppi(
+            current_location,
+            goal,
+            step_size=0.005,
+            obstacle_points=obstacle_points,   # pass the frame's surface points if you have them here
+        )
+    
+        step_size = 0.05
+        accum_dis = 0.0
+        index = 0
+        while accum_dis < step_size and index < len(traj_list) - 1:
+            accum_dis += np.linalg.norm(traj_list[index + 1][:2] - traj_list[index][:2])
+            index += 1
+    
+        return traj_list, index - 1
+ 
     def predict_trajectory(self, Xsrc, Xtar, step_size=0.03, tol=0.02):
         Xsrc = Tensor(Xsrc).cuda()
         Xtar = Tensor(Xtar).cuda()

@@ -64,7 +64,7 @@ def main():
 
     print(f"Global run folder: {global_folder}")
     lengths = []
-    num_runs = 10
+    num_runs = 20
     collisions = 0
     all_policy_times = []          # <-- add
     all_optimizer_times = []       # <-- add

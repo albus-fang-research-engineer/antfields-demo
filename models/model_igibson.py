@@ -387,7 +387,7 @@ class Model():
             run_id += 1
 
         self.folder = run_folder
-        self.folder = None
+        # self.folder = None
         # Pass the JSON information
         self.Params['Device'] = device
         self.Params['Pytorch Amp (bool)'] = False
@@ -429,7 +429,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0156  #0.1
+        self.maximum = 0.0186  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -496,17 +496,19 @@ class Model():
         ######################    Superior      ############################
         self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.069989, 0.0141856, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.11836, 0.05037, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.050712, 0.21064, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.22915, 0.0680198, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.1217, -0.0936, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.19131, 0.00039, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.069989, 0.0141856, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.11836, 0.05037, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.050712, 0.21064, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.22915, 0.0680198, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.1217, -0.0936, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.19131, 0.00039, 0.0], dtype=torch.float32)
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
-        self.enable_plot = False
+        self.enable_plot = True
+        self.enable_diagnostics = False   # dump chance-constraint figures under ablation
+        self.diag_every = 1              # raise to 5/10 if it's too slow
     def gradient(self, y, x, create_graph=True):                                                               
                                                                                   
         grad_y = torch.ones_like(y)                                                                 
@@ -666,15 +668,15 @@ class Model():
         ################## Superior ##################
         initial_view = Tensor([-0.0797515, -0.034389, 0.0])
         initial_view = Tensor([-0.08850, 0.0915668, 0.0])
-        initial_view = Tensor([-0.0615467, -0.173793, 0.0])
-        initial_view = Tensor([0.01909, -0.10586, 0.0])
-        initial_view = Tensor([0.02132, -0.102299, 0.0])
-        initial_view = Tensor([0.13973, -0.105728, 0.0])
-        initial_view = Tensor([0.0344291, 0.0116167, 0.0])
-        initial_view = Tensor([0.02166, 0.11691, 0.0])
-        initial_view = Tensor([0.176635, 0.09965, 0.0])
-        initial_view = Tensor([0.22952, -0.0374228, 0.0])
-        initial_view = Tensor([0.236685, -0.040921, 0.0])
+        # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
+        # initial_view = Tensor([0.01909, -0.10586, 0.0])
+        # initial_view = Tensor([0.02132, -0.102299, 0.0])
+        # initial_view = Tensor([0.13973, -0.105728, 0.0])
+        # initial_view = Tensor([0.0344291, 0.0116167, 0.0])
+        # initial_view = Tensor([0.02166, 0.11691, 0.0])
+        # initial_view = Tensor([0.176635, 0.09965, 0.0])
+        # initial_view = Tensor([0.22952, -0.0374228, 0.0])
+        # initial_view = Tensor([0.236685, -0.040921, 0.0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file
@@ -877,16 +879,18 @@ class Model():
                     torch.cuda.synchronize()
 
                 t2 = time.perf_counter()
-                optimized_traj_list = rollout_optimized(
-                    start,
-                    path,
-                    obstacle_points,
-                    solve_step,
-                    self.dist_model,
-                    self.Params['Device'],
-                    epoch = self.epoch,
-                    folder=self.folder
-                )
+                # ---- ABLATION: no local optimization ----
+                optimized_traj_list = list(traj_list)
+                # optimized_traj_list = rollout_optimized(
+                #     start,
+                #     path,
+                #     obstacle_points,
+                #     solve_step,
+                #     self.dist_model,
+                #     self.Params['Device'],
+                #     epoch = self.epoch,
+                #     folder=self.folder
+                # )
                 if torch.cuda.is_available():
                     torch.cuda.synchronize()
                 t3 = time.perf_counter()
@@ -922,6 +926,28 @@ class Model():
                 policy_times.append(policy_time)             # <-- add
                 optimizer_times.append(optimizer_time)       # <-- add
                 total_planning_times.append(total_time)      # <-- add
+                # ---- DIAGNOSTICS ONLY (ablation intact) ----
+                # Runs solve_step/rollout_optimized purely for their side effects
+                # (figures + npy). Return value is discarded, so the executed path
+                # stays unoptimized. Sits outside t2/t3 so it never enters
+                # optimizer_times.
+                if (self.enable_diagnostics
+                        and self.enable_plot
+                        and self.folder is not None
+                        and self.frame_idx % self.diag_every == 0):
+
+                    diag_folder = os.path.join(self.folder, "diagnostics")
+
+                    _ = rollout_optimized(
+                        traj_list[0],
+                        traj_list[1:traj_ind + 1],
+                        obstacle_points,
+                        solve_step,
+                        self.dist_model,
+                        self.Params['Device'],
+                        epoch=self.epoch,
+                        folder=diag_folder,
+                    )
                 optimized_traj_list = [
                     p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p)
                     for p in optimized_traj_list
@@ -1859,11 +1885,17 @@ class Model():
         goal = self.fixed_goal.detach().cpu().numpy().copy()
         goal[2] = height
 
-        traj_list = self.predict_trajectory2(
+        traj_list = self.predict_trajectory2_gradient(
             current_location,
             goal,
-            step_size=0.005
+            step_size=0.005,
+            tol=0.01
         )
+        # traj_list = self.predict_trajectory2(
+        #     current_location,
+        #     goal,
+        #     step_size=0.005
+        # )
 
         step_size = 0.05
         accum_dis = 0.0

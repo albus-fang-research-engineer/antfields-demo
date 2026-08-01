@@ -496,7 +496,7 @@ class Model():
         ######################    Superior      ############################
         self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.069989, 0.0141856, 0.0], dtype=torch.float32)
@@ -668,7 +668,7 @@ class Model():
         ################## Superior ##################
         initial_view = Tensor([-0.0797515, -0.034389, 0.0])
         initial_view = Tensor([-0.08850, 0.0915668, 0.0])
-        # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
+        initial_view = Tensor([-0.0615467, -0.173793, 0.0])
         # initial_view = Tensor([0.01909, -0.10586, 0.0])
         # initial_view = Tensor([0.02132, -0.102299, 0.0])
         # initial_view = Tensor([0.13973, -0.105728, 0.0])
@@ -1815,46 +1815,61 @@ class Model():
         return self._ou_L
     
     
-    def _fused_planning_query(self, anchor, flat, x_H, x_here, goal_row, K, H):
-        """One network forward + one autograd.grad for:
-        - speed at K*H rollout states (rows [0, K*H))
-        - terminal travel time for K rollouts (rows [K*H, K*H+K))
-        - travel time from current x to goal (last row)
-        Returns (spd (K*H,), term_all (K,), T_here (scalar tensor)), all detached."""
+    def _fused_planning_query(self, flat, x_H, x_here, goal_row, K, H):
+        """One encoder pass over the K*H candidate states (+2 single points),
+        one backward over the candidate branch only.
+        Returns (spd (K*H,), term_all (K,), T_here (0-dim)), all detached.
+        NOTE: x_H must be states[:, -1, :] (it reuses those embeddings)."""
+        net = self.network
         dim = self.dim
-        n_spd = K * H
-        XP = torch.cat((
-            torch.cat((anchor, flat), dim=1),                     # speed rows
-            torch.cat((x_H, goal_row.expand(K, dim)), dim=1),     # terminal rows
-            torch.cat((x_here.view(1, dim), goal_row), dim=1),    # T_here row
-        ), dim=0)
     
-        tau, XPg = self.network.out(XP)
-        dtau = torch.autograd.grad(
-            tau, XPg, torch.ones_like(tau),
-            only_inputs=True, retain_graph=False, create_graph=False)[0]
+        def encode(pts):                       # replicates NN.out encoder path
+            h = net.input_mapping(pts)
+            h = torch.sin(net.encoder[0](h))
+            for ii in range(1, net.nl1):
+                h = torch.sin(net.encoder[ii](h))
+            return torch.sin(net.encoder[-1](h))
     
-        # ---- speed formula on the first n_spd rows ----
-        Xs = XPg[:n_spd]
-        dts = dtau[:n_spd]
-        ts = tau[:n_spd, 0]
-        D = Xs[:, dim:] - Xs[:, :dim]
-        T0 = torch.einsum('ij,ij->i', D, D)
-        DT1 = dts[:, dim:]
+        def head(e0, e1):                      # replicates NN.out generator path
+            h = (e0 - e1) ** 2
+            for ii in range(net.nl2):
+                h = net.act(net.generator[ii](h))
+            h = net.act(net.generator[-2](h))
+            return net.actout(net.generator[-1](h)) / math.e   # (N,1)
+    
+        with torch.no_grad():
+            e_anchor = encode(x_here.view(1, dim))             # (1,h)
+            e_goal = encode(goal_row)                          # (1,h)
+    
+        # ---- grad branch: tau(anchor, cand), grad w.r.t. cand only ----
+        cand = flat.detach().requires_grad_(True)              # (K*H, dim)
+        e_c = encode(cand)
+        tau_s = head(e_anchor.expand_as(e_c), e_c)[:, 0]       # (K*H,)
+        dtau1 = torch.autograd.grad(tau_s.sum(), cand,
+                                    create_graph=False)[0]     # = dtau/dx1
+    
+        # speed formula (only DT1 is needed since the anchor is fixed)
+        Dm = cand.detach() - x_here.view(1, dim)
+        T0 = torch.einsum('ij,ij->i', Dm, Dm)
+        ts = tau_s.detach()
         LogTau = torch.log(ts)
-        T1 = 4 * LogTau**2 * T0 / ts**2 * torch.einsum('ij,ij->i', DT1, DT1)
-        T2 = 4 * LogTau**3 / ts * torch.einsum('ij,ij->i', DT1, D)
-        S = T1 + T2 + LogTau**4
-        spd = (1.0 / torch.sqrt(S)).detach()
+        T1 = 4 * LogTau**2 * T0 / ts**2 * torch.einsum('ij,ij->i', dtau1, dtau1)
+        T2 = 4 * LogTau**3 / ts * torch.einsum('ij,ij->i', dtau1, Dm)
+        spd = 1.0 / torch.sqrt(T1 + T2 + LogTau**4)
     
-        # ---- travel-time formula (tau only) on the remaining K+1 rows ----
-        Xt = XP[n_spd:]
-        tt = tau[n_spd:, 0]
-        Dt = Xt[:, dim:] - Xt[:, :dim]
-        T0t = torch.einsum('ij,ij->i', Dt, Dt)
-        TT = (torch.log(tt)**2 * torch.sqrt(T0t)).detach()
+        # ---- no-grad branch: terminal + T_here, reusing embeddings ----
+        with torch.no_grad():
+            e_last = e_c.detach().reshape(K, H, -1)[:, -1, :]  # embeddings of x_H
+            tau_term = head(e_last, e_goal.expand_as(e_last))[:, 0]
+            Dt = goal_row - x_H
+            T0t = torch.einsum('ij,ij->i', Dt, Dt)
+            term_all = torch.log(tau_term)**2 * torch.sqrt(T0t)
     
-        return spd, TT[:K], TT[K]
+            tau_here = head(e_anchor, e_goal)[0, 0]
+            d2_here = ((goal_row - x_here.view(1, dim))**2).sum()
+            T_here = torch.log(tau_here)**2 * torch.sqrt(d2_here)
+    
+        return spd, term_all, T_here
     
     
     def predict_trajectory_mppi(
@@ -1863,7 +1878,7 @@ class Model():
             Xtar,
             step_size=0.005,
             horizon=12,
-            num_samples=384,
+            num_samples= 256,#384,
             temperature=1.0,
             noise_sigma=0.35,
             noise_beta=0.7,
@@ -1882,6 +1897,7 @@ class Model():
             obs_subsample=2000,
             plan_length=None,
             prev_exec_heading=None,
+            n_exec=3,          # headings executed per MPPI solve (1 = old behavior)
     ):
         device = self.Params['Device']
         dim = self.dim
@@ -1895,9 +1911,9 @@ class Model():
         goal_row = goal.view(1, dim)
         goal_xy = goal[:2].view(1, 1, 2)
         x = Xsrc.clone()
-        traj = [x.detach().clone()]          # GPU tensors; one .cpu() at the end
+        traj = [x.detach().clone()]
         reached = False
-        arc_len = 0.0                        # host float, updated from host-side d
+        arc_len = 0.0
     
         r_abs = max(tol, 2.0 * step_size)
     
@@ -1923,14 +1939,11 @@ class Model():
             last_exec_heading = torch.as_tensor(
                 prev_exec_heading, dtype=torch.float32, device=device)
     
-        # best_T starts at inf; first iteration initializes it from the fused query.
-        # (Original seeded it with a pre-loop traveltime call -- same behavior modulo
-        # a harmless off-by-one in the stall counter.)
         best_T = float('inf')
         stall = 0
     
         for _ in range(max_steps):
-            # ---- OU-correlated noise, vectorized (elite at index 0) ----
+            # ---- OU noise (vectorized), elite at index 0 ----
             xi = torch.randn(K, H, device=device)
             eps = noise_sigma * (xi @ ou_L.T)
             eps[0].zero_()
@@ -1942,20 +1955,19 @@ class Model():
             z = height.view(1, 1, 1).expand(K, H, 1)
             states = torch.cat((xy, z), dim=-1)                            # (K,H,3)
     
-            d_goal = torch.norm(states[..., :2] - goal_xy, dim=-1)         # (K,H)
+            d_goal = torch.norm(states[..., :2] - goal_xy, dim=-1)
             absorbed = torch.cummax((d_goal < r_abs).int(), dim=1).values.bool()
             moving = torch.ones_like(absorbed)
             moving[:, 1:] = ~absorbed[:, :-1]
             moving = moving.float()
     
-            # ---- ONE fused network query: speed (K*H) + terminal (K) + T_here (1) ----
+            # ---- fused query (deduplicated encoder, candidate-only backward) ----
             flat = states.reshape(K * H, dim)
-            anchor = x.view(1, dim).expand(K * H, dim)
             x_H = states[:, -1, :]
             spd, term_all, T_here = self._fused_planning_query(
-                anchor, flat, x_H, x, goal_row, K, H)
+                flat, x_H, x, goal_row, K, H)
     
-            # ---- single host sync per iteration ----
+            # ---- single host sync per solve ----
             d = torch.norm(x[:2] - goal[:2])
             host = torch.stack((d, T_here)).cpu()
             d_h = host[0].item()
@@ -1998,32 +2010,78 @@ class Model():
                 viol = (obs_thresh - dmin).clamp(min=0.0)
                 cost = cost + w_obs * ((viol ** 2) * moving).sum(dim=1)
     
-            # ---- outlier-immune softmin (median scale) ----
+            # ---- softmin update ----
             c = cost - cost.min()
-            scale = c.median().clamp(min=1e-9)     # == quantile(c, 0.5), cheaper
+            scale = c.median().clamp(min=1e-9)
             w = torch.softmax(-c / (temperature * scale), dim=0)
     
             cos_bar = (w.unsqueeze(1) * torch.cos(theta)).sum(dim=0)
             sin_bar = (w.unsqueeze(1) * torch.sin(theta)).sum(dim=0)
             theta_upd = torch.atan2(sin_bar, cos_bar)
     
-            # ---- execute; clamp final approach using the host-side d ----
-            h0 = theta_upd[0]
-            step_exec = min(step_size, d_h)        # python float, no tensor alloc
-            x = x.clone()
-            x[:2] = x[:2] + step_exec * torch.stack((torch.cos(h0), torch.sin(h0)))
-            x[2] = height
-            traj.append(x.detach().clone())
-            arc_len += step_exec
-            last_exec_heading = h0
+            # ---- execute n headings of the solved plan ----
+            # Near the goal (or plan_length boundary) fall back to a single
+            # clamped step so we can never overshoot between syncs.
+            n = n_exec
+            if d_h <= (n_exec + 1) * step_size:
+                n = 1
+            if plan_length is not None:
+                remaining = plan_length - arc_len
+                n = min(n, max(1, int(math.ceil(remaining / step_size))))
     
-            theta_nom = torch.cat((theta_upd[1:], theta_upd[-1:].clone()))
+            h_seq = theta_upd[:n]
+            deltas = step_size * torch.stack(
+                (torch.cos(h_seq), torch.sin(h_seq)), dim=-1)              # (n,2)
+            if n == 1:
+                step1 = min(step_size, d_h)
+                deltas = deltas * (step1 / step_size)
+                arc_len += step1
+            else:
+                arc_len += n * step_size
+    
+            new_xy = x[:2].view(1, 2) + torch.cumsum(deltas, dim=0)        # (n,2)
+            hz = height.view(1)
+            for i in range(n):
+                traj.append(torch.cat((new_xy[i], hz)).detach())
+            x = torch.cat((new_xy[-1], hz))
+            last_exec_heading = h_seq[-1]
+    
+            theta_nom = torch.cat((theta_upd[n:], theta_upd[-1:].expand(n)))
     
         if reached:
             traj.append(goal.detach().clone())
     
         traj_np = torch.stack(traj).cpu().numpy()
         return traj_np, last_exec_heading.item()
+    
+    
+    # ---------------------------------------------------------------------------
+    # One-off correctness check: run once after pasting, then delete/comment out.
+    # Verifies the deduplicated query matches network.out-based math to float eps.
+    # ---------------------------------------------------------------------------
+    def _check_fused_query(self, K=8, H=12):
+        device = self.Params['Device']
+        dim = self.dim
+        torch.manual_seed(0)
+        x_here = torch.randn(dim, device=device) * 0.1
+        goal = torch.randn(1, dim, device=device) * 0.1
+        flat = torch.randn(K * H, dim, device=device) * 0.1
+        x_H = flat.reshape(K, H, dim)[:, -1, :]
+    
+        spd_new, term_new, T_new = self._fused_planning_query(
+            flat, x_H, x_here, goal, K, H)
+    
+        # reference via the original per-purpose queries
+        anchor = x_here.view(1, dim).expand(K * H, dim)
+        spd_ref = self._speed_planning(torch.cat((anchor, flat), dim=1))
+        term_ref = self._traveltime_planning(
+            torch.cat((x_H, goal.expand(K, dim)), dim=1))
+        T_ref = self._traveltime_planning(
+            torch.cat((x_here.view(1, dim), goal), dim=1))[0]
+    
+        print("speed  max abs diff:", (spd_new - spd_ref).abs().max().item())
+        print("term   max abs diff:", (term_new - term_ref).abs().max().item())
+        print("T_here abs diff    :", (T_new - T_ref).abs().item())
     
     
     def policy_goal_direct_mppi(self, current_location, height, obstacle_points=None):
@@ -2035,18 +2093,18 @@ class Model():
         d_goal = float(np.linalg.norm(np.asarray(current_location)[:2] - goal[:2]))
 
         obs = obstacle_points
-        if getattr(self, "all_surf_pc", None):
-            try:
-                accum = [p if torch.is_tensor(p) else torch.as_tensor(p, dtype=torch.float32)
-                        for p in self.all_surf_pc]
-                accum = torch.cat(accum, dim=0)
-                if obs is not None:
-                    cur = obs if torch.is_tensor(obs) else torch.as_tensor(obs, dtype=torch.float32)
-                    obs = torch.cat((accum.to(cur.device), cur), dim=0)
-                else:
-                    obs = accum
-            except Exception:
-                pass
+        # if getattr(self, "all_surf_pc", None):
+        #     try:
+        #         accum = [p if torch.is_tensor(p) else torch.as_tensor(p, dtype=torch.float32)
+        #                 for p in self.all_surf_pc]
+        #         accum = torch.cat(accum, dim=0)
+        #         if obs is not None:
+        #             cur = obs if torch.is_tensor(obs) else torch.as_tensor(obs, dtype=torch.float32)
+        #             obs = torch.cat((accum.to(cur.device), cur), dim=0)
+        #         else:
+        #             obs = accum
+        #     except Exception:
+        #         pass
 
         traj_list, exec_heading = self.predict_trajectory_mppi(
             current_location,

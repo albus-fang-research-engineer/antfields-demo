@@ -844,11 +844,49 @@ class Model():
                             }
                         # break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
-                    # --- policy timing ---
+                    # --- policy timing + MPPI profiling ---
+                    profile_mppi = (self.frame_idx == 0)   # change condition to pick which frame(s) to profile
+
+                    if profile_mppi:
+                        if not hasattr(self, "_profile_dir"):
+                            stamp = (datetime.utcnow() - timedelta(hours=4)).strftime("%m_%d_%H_%M")
+                            self._profile_dir = f"/antfields/time_profiles/time_profile_{stamp}"
+                            os.makedirs(self._profile_dir, exist_ok=True)
+                            print(f"[profile] saving profiles to {self._profile_dir}")
+                        mppi_profiler = cProfile.Profile()
+                        mppi_profiler.enable()
+
+                    if torch.cuda.is_available():
+                        torch.cuda.synchronize()
                     t0 = time.perf_counter()
-                    # traj_list, traj_ind = self.policy_goal_direct(self.cur_view.detach().clone().cpu().numpy(), height=0) 
-                    traj_list, traj_ind = self.policy_goal_direct_mppi(self.cur_view.detach().clone().cpu().numpy(), height=0, obstacle_points=obstacle_points)
+
+                    traj_list, traj_ind = self.policy_goal_direct_mppi(
+                        self.cur_view.detach().clone().cpu().numpy(),
+                        height=0,
+                        obstacle_points=obstacle_points,
+                    )
+
+                    if torch.cuda.is_available():
+                        torch.cuda.synchronize()
                     t1 = time.perf_counter()
+
+                    if profile_mppi:
+                        mppi_profiler.disable()
+                        prof_path = f"{self._profile_dir}/mppi_profile_epoch_{self.epoch}.prof"
+                        mppi_profiler.dump_stats(prof_path)
+                        print(f"[profile] saved {prof_path}")
+
+                        txt_path = f"{self._profile_dir}/mppi_profile_epoch_{self.epoch}.txt"
+                        with open(txt_path, "w") as f:
+                            ps = pstats.Stats(mppi_profiler, stream=f).sort_stats("cumulative")
+                            ps.print_stats(40)
+                            f.write("\n--- by tottime (self-time, excludes callees) ---\n")
+                            ps = pstats.Stats(mppi_profiler, stream=f).sort_stats("tottime")
+                            ps.print_stats(30)
+
+                        s = io.StringIO()
+                        pstats.Stats(mppi_profiler, stream=s).sort_stats("cumulative").print_stats(20)
+                        print(s.getvalue())
                     # traj_list is the full gradient-descent trajectory from current position to the selected unexplored block. 
                     # traj_ind is the index along the trajectory where accumulated path length ≈ 0.05 meters.
                     nbv = Tensor(traj_list[traj_ind])
@@ -865,7 +903,7 @@ class Model():
                 start = traj_list[0]
                 path = traj_list[1:]
                 profile_this = (self.frame_idx == 0)
-
+                profile_this= False
                 if profile_this:
                     # Create the profile directory once per run, reuse for any subsequent dumps
                     if not hasattr(self, "_profile_dir"):

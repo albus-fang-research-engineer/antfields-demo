@@ -429,7 +429,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0186  #0.1
+        self.maximum = 0.0146  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -491,11 +491,11 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
         ######################    Superior      ############################
-        self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
@@ -662,12 +662,12 @@ class Model():
         # initial_view = Tensor([-0.20589, 0.104213, 0.0])
         # initial_view = Tensor([-0.1027, 0.103383, 0.0])
         # initial_view = Tensor([-0.3620, 0.160228, 0.0])
-        # initial_view = Tensor([-0.266721, 0.216986, 0.0])
+        initial_view = Tensor([-0.266721, 0.216986, 0.0])
         # initial_view = Tensor([-0.390377, 0.101086, 0.0])
 
         ################## Superior ##################
-        initial_view = Tensor([-0.0797515, -0.034389, 0.0])
-        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        # initial_view = Tensor([-0.0797515, -0.034389, 0.0])
+        # initial_view = Tensor([-0.08850, 0.0915668, 0.0])
         # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
         # initial_view = Tensor([0.01909, -0.10586, 0.0])
         # initial_view = Tensor([0.02132, -0.102299, 0.0])
@@ -1644,7 +1644,95 @@ class Model():
                             bbox_inches='tight')
 
                 plt.close(fig)
+    # Drop-in replacement for Model.predict_trajectory2
+    # Same signature/return contract: accepts np arrays or tensors, returns (T,3) np array.
+    #
+    # Variance structure (what's random, what's not):
+    #   - Direction set U:   drawn ONCE per call (common random numbers). Runs differ
+    #                        through their sampled set; steps within a run see
+    #                        correlated estimator error, which momentum then filters.
+    #   - explore_eps:       explicit heading noise (rad). THE knob for run-to-run
+    #                        diversity. Set 0.0 -> near-deterministic given U;
+    #                        0.1-0.3 -> visibly different but coherent paths.
+    #   - Everything else (antithetic pairs, momentum) is variance REDUCTION only.
 
+    def predict_trajectory2_(self, Xsrc, Xtar,
+                            samples=64,          # antithetic pairs -> 2*samples TravelTime evals/step
+                            step_size=0.05,
+                            probe_scale=4.0,     # probe radius sigma = probe_scale * step_size
+                            momentum=0.7,        # heading low-pass; 0 disables
+                            explore_eps=0.15,    # rad; explicit per-step heading noise
+                            w_goal=0.7,          # weight on straight-line pull; 0 disables
+                            tol=0.01,
+                            max_steps=200,
+                            generator=None):     # torch.Generator for seedable runs
+
+        device = self.Params['Device']
+
+        Xsrc = torch.as_tensor(Xsrc, dtype=torch.float32, device=device)
+        Xtar = torch.as_tensor(Xtar, dtype=torch.float32, device=device)
+
+        current = Xsrc.clone()
+        height = Xsrc[2].clone()
+        goal_xy = Xtar[:2]
+        sigma = probe_scale * step_size
+
+        # ---- common random numbers: one antithetic direction set for the whole call ----
+        ang = 2.0 * math.pi * torch.rand(samples, device=device, generator=generator)
+        U = torch.stack((torch.cos(ang), torch.sin(ang)), dim=1)          # (N,2), unit
+
+        # warm-start heading toward goal so momentum has a sane anchor at step 0
+        d_prev = goal_xy - current[:2]
+        d_prev = d_prev / d_prev.norm().clamp(min=1e-9)
+
+        traj = [current.detach().cpu().numpy()]
+
+        # preallocate the query batch; only the candidate xy changes per step
+        XP = torch.zeros(2 * samples, 2 * self.dim, device=device)
+        XP[:, 2] = height
+        XP[:, self.dim:] = Xtar.unsqueeze(0)
+
+        for _ in range(max_steps):
+            d_goal = torch.norm(current[:2] - goal_xy)
+            if d_goal < tol:
+                break
+
+            # ---- antithetic zero-order gradient of TravelTime w.r.t. position ----
+            XP[:samples, 0:2] = current[:2].unsqueeze(0) + sigma * U
+            XP[samples:, 0:2] = current[:2].unsqueeze(0) - sigma * U
+
+            costs = self.TravelTimes(XP).detach()
+            c_p, c_m = costs[:samples], costs[samples:]
+
+            # d=2 isotropic estimator: g = (d / 2sigma) * E[(f+ - f-) u] = E[...]/sigma
+            g_hat = ((c_p - c_m).unsqueeze(1) * U).mean(dim=0) / sigma
+
+            # goal bias in the COST: descend T + w_goal*||x - goal||.
+            # Analytic gradient -> no added estimator noise. Summed pre-normalization,
+            # so it dominates where the field is flat/untrained (|g_hat| small) and
+            # yields to the field near obstacles (|grad T| ~ 1/speed blows up).
+            g_hat = g_hat + w_goal * (current[:2] - goal_xy) / d_goal.clamp(min=1e-9)
+
+            d_new = -g_hat / g_hat.norm().clamp(min=1e-9)
+
+            # ---- heading momentum (low-pass exactly the noisy quantity) ----
+            d = momentum * d_prev + (1.0 - momentum) * d_new
+            d = d / d.norm().clamp(min=1e-9)
+
+            # ---- explicit exploration noise: small rotation of the heading ----
+            if explore_eps > 0:
+                phi = explore_eps * torch.randn((), device=device, generator=generator)
+                c, s = torch.cos(phi), torch.sin(phi)
+                d = torch.stack((c * d[0] - s * d[1], s * d[0] + c * d[1]))
+
+            d_prev = d  # momentum anchors on the executed (noisy) heading
+
+            step = torch.clamp(d_goal, max=step_size)  # don't overshoot the goal
+            current = torch.cat((current[:2] + step * d, height.view(1)))
+            traj.append(current.detach().cpu().numpy())
+
+        traj.append(Xtar.detach().cpu().numpy())
+        return np.array(traj)
     def predict_trajectory2(self, Xsrc, Xtar,
                             samples=200,
                             step_size=0.05,

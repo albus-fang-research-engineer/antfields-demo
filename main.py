@@ -35,7 +35,7 @@ def main():
     renderer = None
     if mode in [EXPLORATION]:
         from igibson.render.mesh_renderer.mesh_renderer_cpu import MeshRenderer
-        meshpath = "data/mesh_superior_normalized.obj"
+        meshpath = "data/mesh_allensville_normalized.obj"
         
         renderer = MeshRenderer(width=1200, height=680)
         renderer.load_object(meshpath, scale=np.array([1, 1, 1]) * scale_factor)
@@ -64,20 +64,24 @@ def main():
 
     print(f"Global run folder: {global_folder}")
     lengths = []
-    num_runs = 10
+    num_runs = 20
     collisions = 0
     all_policy_times = []          # <-- add
     all_optimizer_times = []       # <-- add
     all_total_times = []           # <-- add
+    control_efforts = []           # per-run control effort of the executed path
+    all_deviations = []            # per-waypoint deviation from nominal, pooled over runs
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")
 
         model = md.Model(global_folder, 3, scale_factor, mode, renderer, device='cuda:0')
-        
+
         result = model.train()
         all_policy_times.extend(result["policy_times"])              # <-- add
         all_optimizer_times.extend(result["optimizer_times"])        # <-- add
         all_total_times.extend(result["total_planning_times"])       # <-- add
+        control_efforts.append(result["control_effort"])
+        all_deviations.extend(result["deviations"])
         if result["collision"]:
             collisions += 1
             print("Run ended with collision")
@@ -106,6 +110,14 @@ def main():
         print(f"Mean total plan time:  {np.mean(total_times)*1000:.2f} ms  (std {np.std(total_times)*1000:.2f})")
     else:
         print("No planning calls recorded.")
+
+    control_efforts = np.array(control_efforts)
+    deviations = np.array(all_deviations)
+    print(f"Mean control effort:   {np.mean(control_efforts) * scale_factor**2:.6f} m^2  (std {np.std(control_efforts) * scale_factor**2:.6f})")
+    if len(deviations) > 0:
+        print(f"Mean deviation from nominal: {np.mean(deviations) * scale_factor:.6f} m  (std {np.std(deviations) * scale_factor:.6f}, max {np.max(deviations) * scale_factor:.6f})")
+    else:
+        print("No deviation samples recorded.")
 
 if __name__ == '__main__':
     main()

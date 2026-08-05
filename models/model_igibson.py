@@ -741,6 +741,8 @@ class Model():
         policy_times = []           # <-- add
         optimizer_times = []        # <-- add
         total_planning_times = []
+        control_effort = 0.0        # sum of squared step displacements of the executed path (xy)
+        deviations = []             # per-waypoint distance between executed and nominal path (xy)
         while True:
             if True:
                 print("Current Viewpoint:", self.cur_view)
@@ -839,6 +841,8 @@ class Model():
                                 "policy_times": policy_times,
                                 "optimizer_times": optimizer_times,
                                 "total_planning_times": total_planning_times,
+                                "control_effort": control_effort,
+                                "deviations": deviations,
                             }
                         # break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
@@ -972,6 +976,16 @@ class Model():
                     self.trajectory = segment_np
                 else:
                     self.trajectory = np.concatenate([self.trajectory, segment_np[1:]], axis=0)
+
+                # Control effort of the executed segment + deviation from the
+                # nominal (pre-optimization) segment, both in xy.
+                nominal_segment_xy = np.asarray(traj_list[:traj_ind + 1], dtype=np.float64)[:, :2]
+                optimized_segment_xy = segment_np[:, :2].astype(np.float64)
+                steps = np.diff(optimized_segment_xy, axis=0)
+                control_effort += float(np.sum(steps ** 2))
+                deviations.extend(
+                    np.linalg.norm(optimized_segment_xy - nominal_segment_xy, axis=1).tolist()
+                )
                 # print("traj is:", traj)
                 collision, idxs = check_collision_with_surface_points(
                     segment_np,
@@ -993,6 +1007,8 @@ class Model():
                         "policy_times": policy_times,
                         "optimizer_times": optimizer_times,
                         "total_planning_times": total_planning_times,
+                        "control_effort": control_effort,
+                        "deviations": deviations,
                     }
                 
                 #? ******************SAVINGS start*******************
@@ -1067,7 +1083,15 @@ class Model():
             with torch.no_grad():
                 self.save(epoch=self.epoch, val_loss=total_diff)
 
-        return None
+        return {
+            "length": None,
+            "collision": False,
+            "policy_times": policy_times,
+            "optimizer_times": optimizer_times,
+            "total_planning_times": total_planning_times,
+            "control_effort": control_effort,
+            "deviations": deviations,
+        }
     def train_core(self, epoch, frame_data, is_one_frame=True):
         beta = 1.0
         prev_diff = 1.0

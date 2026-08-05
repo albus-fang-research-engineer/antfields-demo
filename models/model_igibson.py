@@ -480,7 +480,7 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.15836, -0.125869, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.229774, -0.086229, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.27321, -0.0265, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
 
         ######################    Denmark      ############################
         # self.fixed_goal = torch.tensor([-0.1509, 0.103031, 0.0], dtype=torch.float32)
@@ -494,17 +494,17 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
         ######################    Superior      ############################
-        self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.069989, 0.0141856, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.11836, 0.05037, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.050712, 0.21064, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.22915, 0.0680198, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.1217, -0.0936, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.19131, 0.00039, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.069989, 0.0141856, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.11836, 0.05037, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.050712, 0.21064, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.22915, 0.0680198, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.1217, -0.0936, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.19131, 0.00039, 0.0], dtype=torch.float32)
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
         self.enable_plot = False
     def gradient(self, y, x, create_graph=True):                                                               
@@ -649,7 +649,7 @@ class Model():
         # initial_view = Tensor([-0.306212, 0.160368, 0.0])
         # initial_view = Tensor([-0.25277, 0.14011, 0.0])
         # initial_view = Tensor([-0.16236, -0.123969, 0.0])
-        # initial_view = Tensor([-0.30698, -0.29587, 0.0])
+        initial_view = Tensor([-0.30698, -0.29587, 0.0])
 
         ################## Denmark ##################
         # initial_view = Tensor([-0.03756, -0.01000, 0.0])
@@ -664,17 +664,17 @@ class Model():
         # initial_view = Tensor([-0.390377, 0.101086, 0.0])
 
         ################## Superior ##################
-        initial_view = Tensor([-0.0797515, -0.034389, 0.0])
-        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
-        initial_view = Tensor([-0.0615467, -0.173793, 0.0])
-        initial_view = Tensor([0.01909, -0.10586, 0.0])
-        initial_view = Tensor([0.02132, -0.102299, 0.0])
-        initial_view = Tensor([0.13973, -0.105728, 0.0])
-        initial_view = Tensor([0.0344291, 0.0116167, 0.0])
-        initial_view = Tensor([0.02166, 0.11691, 0.0])
-        initial_view = Tensor([0.176635, 0.09965, 0.0])
-        initial_view = Tensor([0.22952, -0.0374228, 0.0])
-        initial_view = Tensor([0.236685, -0.040921, 0.0])
+        # initial_view = Tensor([-0.0797515, -0.034389, 0.0])
+        # initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
+        # initial_view = Tensor([0.01909, -0.10586, 0.0])
+        # initial_view = Tensor([0.02132, -0.102299, 0.0])
+        # initial_view = Tensor([0.13973, -0.105728, 0.0])
+        # initial_view = Tensor([0.0344291, 0.0116167, 0.0])
+        # initial_view = Tensor([0.02166, 0.11691, 0.0])
+        # initial_view = Tensor([0.176635, 0.09965, 0.0])
+        # initial_view = Tensor([0.22952, -0.0374228, 0.0])
+        # initial_view = Tensor([0.236685, -0.040921, 0.0])
         self.initial_view = initial_view
         
         if self.mode == READ_FROM_COOKED_DATA: # read from file

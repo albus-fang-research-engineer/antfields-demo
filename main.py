@@ -67,13 +67,17 @@ def main():
     num_runs =20
     collisions = 0
     all_planning_times = []
+    control_efforts = []
+    all_deviations = []
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")
 
         model = md.Model(global_folder, 3, scale_factor, mode, renderer, device='cuda:0')
-        
+
         result = model.train()
         all_planning_times.extend(result["planning_times"])
+        control_efforts.append(result["control_effort"])
+        all_deviations.extend(result["deviations"])
         if result["collision"]:
             collisions += 1
             print("Run ended with collision")
@@ -96,5 +100,15 @@ def main():
     print(f"Planning calls:     {len(planning_times)}")
     print(f"Mean planning time: {np.mean(planning_times)*1000:.2f} ms")
     print(f"Std planning time:  {np.std(planning_times)*1000:.2f} ms")
+
+    control_efforts = np.array(control_efforts)
+    deviations = np.array(all_deviations)
+    print(f"Mean control effort per run: {np.mean(control_efforts) * scale_factor**2:.4f} m^2")
+    print(f"Std control effort per run:  {np.std(control_efforts) * scale_factor**2:.4f} m^2")
+    if len(deviations) > 0:
+        print(f"Waypoints compared:          {len(deviations)}")
+        print(f"Mean deviation from nominal: {np.mean(deviations) * scale_factor:.4f} m")
+        print(f"Std deviation from nominal:  {np.std(deviations) * scale_factor:.4f} m")
+        print(f"Max deviation from nominal:  {np.max(deviations) * scale_factor:.4f} m")
 if __name__ == '__main__':
     main()

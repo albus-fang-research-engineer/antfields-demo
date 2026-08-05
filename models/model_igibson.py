@@ -630,6 +630,8 @@ class Model():
         if (self.folder is not None) and (not os.path.exists(self.folder)):
             os.makedirs(self.folder)
         planning_times = []
+        control_effort = 0.0
+        deviations = []
         self.load_rawdata()
         is_one_frame = True
         while True:
@@ -719,7 +721,9 @@ class Model():
                         return {
                             "length": length,
                             "collision": False,
-                            "planning_times": planning_times
+                            "planning_times": planning_times,
+                            "control_effort": control_effort,
+                            "deviations": deviations,
                         }
                     t_planning_start = time.time()
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0)
@@ -751,6 +755,18 @@ class Model():
 
                 optimized_segment = optimized_traj_list[:traj_ind + 1]
                 nbv = Tensor(optimized_traj_list[traj_ind])   # NBV now taken from the optimized trajectory
+
+                # === CC ABLATION METRICS: control effort + deviation from nominal (executed segment, xy) ===
+                nominal_segment_xy = np.asarray([
+                    (p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p))[:2]
+                    for p in traj_list[:traj_ind + 1]
+                ])
+                optimized_segment_xy = np.asarray([p[:2] for p in optimized_segment])
+                steps = np.diff(optimized_segment_xy, axis=0)
+                control_effort += float(np.sum(steps ** 2))
+                deviations.extend(
+                    np.linalg.norm(optimized_segment_xy - nominal_segment_xy, axis=1).tolist()
+                )
                 # === END CC ABLATION ADDITION ===
 
                 # print("*"*10)
@@ -806,6 +822,8 @@ class Model():
                         "length": None,
                         "collision": True,
                         "planning_times": planning_times,
+                        "control_effort": control_effort,
+                        "deviations": deviations,
                     }
 
                 #? ******************SAVINGS start*******************
@@ -885,6 +903,8 @@ class Model():
             "length": None,
             "collision": False,
             "planning_times": planning_times,
+            "control_effort": control_effort,
+            "deviations": deviations,
         }
     def train_core(self, epoch, frame_data, is_one_frame=True):
         beta = 1.0

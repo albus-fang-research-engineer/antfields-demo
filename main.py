@@ -35,8 +35,8 @@ def main():
     renderer = None
     if mode in [EXPLORATION]:
         from igibson.render.mesh_renderer.mesh_renderer_cpu import MeshRenderer
-        meshpath = "data/mesh_allensville_normalized.obj"
-        # meshpath = "data/default_mesh.obj"
+        meshpath = "data/mesh_denmark_normalized.obj"
+        # meshpath = "data/mesh2.obj"
         renderer = MeshRenderer(width=1200, height=680)
         renderer.load_object(meshpath, scale=np.array([1, 1, 1]) * scale_factor)
         renderer.add_instance_group([0])
@@ -69,6 +69,8 @@ def main():
     all_planning_times = []
     control_efforts = []
     all_deviations = []
+    total_paths_planned = 0
+    total_paths_cc_triggered = 0
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")
 
@@ -78,6 +80,8 @@ def main():
         all_planning_times.extend(result["planning_times"])
         control_efforts.append(result["control_effort"])
         all_deviations.extend(result["deviations"])
+        total_paths_planned += result["paths_planned"]
+        total_paths_cc_triggered += result["paths_cc_triggered"]
         if result["collision"]:
             collisions += 1
             print("Run ended with collision")
@@ -110,5 +114,9 @@ def main():
         print(f"Mean deviation from nominal: {np.mean(deviations) * scale_factor:.4f} m")
         print(f"Std deviation from nominal:  {np.std(deviations) * scale_factor:.4f} m")
         print(f"Max deviation from nominal:  {np.max(deviations) * scale_factor:.4f} m")
+    if total_paths_planned > 0:
+        print(f"Paths planned:               {total_paths_planned}")
+        print(f"Paths with CC active:        {total_paths_cc_triggered} "
+              f"({100.0 * total_paths_cc_triggered / total_paths_planned:.1f}%)")
 if __name__ == '__main__':
     main()

@@ -363,7 +363,7 @@ class Model():
         # self.fixed_goal = torch.tensor([0.062, -0.026, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.0296, -0.236, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.055632,  -0.1266, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.009981,  0.339293, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.009981,  0.339293, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0397859,  -0.000756, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0770818,  -0.0360409, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.0615918, 0.21549, 0.0], dtype=torch.float32)
@@ -381,7 +381,7 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.15836, -0.125869, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.229774, -0.086229, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.27321, -0.0265, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
 
         ######################    Denmark      ############################
         # self.fixed_goal = torch.tensor([-0.1509, 0.103031, 0.0], dtype=torch.float32)
@@ -392,7 +392,7 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
 
         ######################    Superior      ############################
@@ -535,7 +535,7 @@ class Model():
         # initial_view = Tensor([ 0.011,  -0.116, 0.0])
         # initial_view = Tensor([ -0.0036,  -0.0326, 0.0])
         # initial_view = Tensor([0.02538, -0.22976, 0.0])
-        # initial_view = Tensor([0.15026, 0.23365, 0.0])
+        initial_view = Tensor([0.15026, 0.23365, 0.0])
         # initial_view = Tensor([-0.0136337, 0.145519, 0.0])
         # initial_view = Tensor([-0.0491679, -0.129549, 0.0])
         # initial_view = Tensor([0.06298, 0.281353, 0.0])
@@ -553,7 +553,7 @@ class Model():
         # initial_view = Tensor([-0.306212, 0.160368, 0.0])
         # initial_view = Tensor([-0.25277, 0.14011, 0.0])
         # initial_view = Tensor([-0.16236, -0.123969, 0.0])
-        initial_view = Tensor([-0.30698, -0.29587, 0.0])
+        # initial_view = Tensor([-0.30698, -0.29587, 0.0])
 
         ################## Denmark ##################
         # initial_view = Tensor([-0.03756, -0.01000, 0.0])
@@ -564,7 +564,7 @@ class Model():
         # initial_view = Tensor([-0.20589, 0.104213, 0.0])
         # initial_view = Tensor([-0.1027, 0.103383, 0.0])
         # initial_view = Tensor([-0.3620, 0.160228, 0.0])
-        # initial_view = Tensor([-0.266721, 0.216986, 0.0])
+        initial_view = Tensor([-0.266721, 0.216986, 0.0])
         # initial_view = Tensor([-0.390377, 0.101086, 0.0])
 
         ################## Superior ##################
@@ -632,6 +632,8 @@ class Model():
         planning_times = []
         control_effort = 0.0
         deviations = []
+        paths_planned = 0
+        paths_cc_triggered = 0
         self.load_rawdata()
         is_one_frame = True
         while True:
@@ -724,6 +726,8 @@ class Model():
                             "planning_times": planning_times,
                             "control_effort": control_effort,
                             "deviations": deviations,
+                            "paths_planned": paths_planned,
+                            "paths_cc_triggered": paths_cc_triggered,
                         }
                     t_planning_start = time.time()
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0)
@@ -736,7 +740,7 @@ class Model():
                 path = traj_list[1:]
 
                 t_cc_start = time.time()
-                optimized_traj_list = rollout_optimized(
+                optimized_traj_list, cc_active_flags = rollout_optimized(
                     start,
                     path,
                     surface_points,          # baseline's name for what the CC file calls obstacle_points
@@ -767,6 +771,9 @@ class Model():
                 deviations.extend(
                     np.linalg.norm(optimized_segment_xy - nominal_segment_xy, axis=1).tolist()
                 )
+                paths_planned += 1
+                if any(cc_active_flags[:traj_ind]):  # flag i covers the step traj[i] -> traj[i+1]
+                    paths_cc_triggered += 1
                 # === END CC ABLATION ADDITION ===
 
                 # print("*"*10)
@@ -824,6 +831,8 @@ class Model():
                         "planning_times": planning_times,
                         "control_effort": control_effort,
                         "deviations": deviations,
+                        "paths_planned": paths_planned,
+                        "paths_cc_triggered": paths_cc_triggered,
                     }
 
                 #? ******************SAVINGS start*******************
@@ -905,6 +914,8 @@ class Model():
             "planning_times": planning_times,
             "control_effort": control_effort,
             "deviations": deviations,
+            "paths_planned": paths_planned,
+            "paths_cc_triggered": paths_cc_triggered,
         }
     def train_core(self, epoch, frame_data, is_one_frame=True):
         beta = 1.0

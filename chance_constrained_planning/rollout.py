@@ -18,10 +18,12 @@ def rollout_optimized(start, path, obstacle_points, solver, model, device, epoch
     p = _to_numpy(start).copy()
     traj = [p.copy()]
     nominal = [_to_numpy(start).copy()]
+    constrained_flags = []  # per step: True if a chance constraint was active in the QP
     for wp in path:
         wp_np = _to_numpy(wp)
         nominal.append(wp_np.copy())
-        p, mu, sigma = solver(p, wp_np, obstacle_points, model, device, epoch, start, folder)
+        p, mu, sigma, constrained = solver(p, wp_np, obstacle_points, model, device, epoch, start, folder)
+        constrained_flags.append(bool(constrained))
         p = _to_numpy(p).copy()
         traj.append(p.copy())
     if folder is not None:
@@ -32,7 +34,7 @@ def rollout_optimized(start, path, obstacle_points, solver, model, device, epoch
         np.save(f"{folder}/epoch_{epoch:04d}_nominal.npy", nominal_np)
         np.save(f"{folder}/epoch_{epoch:04d}_optimized.npy", traj_np)
 
-    return traj
+    return traj, constrained_flags
 
 def rollout_optimized_plot(start, path, obstacle_points, solver, model, device):
     p = start.copy()
@@ -42,7 +44,7 @@ def rollout_optimized_plot(start, path, obstacle_points, solver, model, device):
     sigmas = []
 
     for wp in path:
-        p, mu, sigma = solver(p, wp, obstacle_points, model, device)
+        p, mu, sigma, _ = solver(p, wp, obstacle_points, model, device)
 
         traj.append(p.copy())
         mus.append(mu)

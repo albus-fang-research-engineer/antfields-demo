@@ -447,7 +447,7 @@ class Model():
         #####################    MAP1      ############################
         self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.15,  0.0396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.2816,   0.1116,  0.0], dtype=torch.float32)
@@ -458,22 +458,22 @@ class Model():
 
         ######################    MAP2      ############################
 
-        self.fixed_goal = torch.tensor([0.0186, 0.06, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.062, -0.026, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.0186, 0.06, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.062, -0.026, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.0296, -0.236, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.055632,  -0.1266, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.009981,  0.339293, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0397859,  -0.000756, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([0.0770818,  -0.0360409, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.0770818,  -0.0360409, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.0615918, 0.21549, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.13926, 0.2283, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.089705, 0.365, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.06297, 0.2813, 0.0], dtype=torch.float32)
 
         ######################    Allensville      ############################
-        self.fixed_goal = torch.tensor([-0.1892, -0.0852, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.2712, 0.098632, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.01468, -0.20258, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1892, -0.0852, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.2712, 0.098632, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.01468, -0.20258, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.2762, -0.2695, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.1437, -0.0755, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.22977, -0.085229, 0.0], dtype=torch.float32)
@@ -491,7 +491,7 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
         ######################    Superior      ############################
         # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
@@ -502,7 +502,7 @@ class Model():
         # self.fixed_goal = torch.tensor([0.069989, 0.0141856, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.11836, 0.05037, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.050712, 0.21064, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([0.22915, 0.0680198, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.22915, 0.0680198, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.1217, -0.0936, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.19131, 0.00039, 0.0], dtype=torch.float32)
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
@@ -621,7 +621,7 @@ class Model():
         ################## Map 1 ##################
         initial_view = Tensor([-0.12, -0.046, 0])
         initial_view = Tensor([ 0.042176,  -0.02060163, 0.0])
-        # initial_view = Tensor([0.3608916,  0.171, 0.0]) #initial_view = Tensor([0.36,  0.151, 0.0])
+        initial_view = Tensor([0.3608916,  0.171, 0.0]) #initial_view = Tensor([0.36,  0.151, 0.0])
         initial_view = Tensor([-0.05826768, -0.00738018, 0.0])
         # initial_view = Tensor([0.07269316, -0.05, 0.0])
         # initial_view = Tensor([0.16602385, 0.0396, 0.0 ])
@@ -630,21 +630,21 @@ class Model():
         # initial_view = Tensor([0.1912,   0.1996723,  0.0])
         # initial_view = Tensor([ 0.0096,  -0.0186, 0.0])
         ################## Map 2 ##################
-        initial_view = Tensor([ 0.0616,  -0.0216, 0.0])
-        initial_view = Tensor([ 0.01103258,  -0.116, 0.0])
+        # initial_view = Tensor([ 0.0616,  -0.0216, 0.0])
+        # initial_view = Tensor([ 0.01103258,  -0.116, 0.0])
         # initial_view = Tensor([ -0.0036,  -0.0326, 0.0])
         # initial_view = Tensor([0.02538, -0.22976, 0.0])
         # initial_view = Tensor([0.15026, 0.23365, 0.0])
         # initial_view = Tensor([-0.0136337, 0.145519, 0.0])
-        # initial_view = Tensor([-0.0491679, -0.129549, 0.0])
+        initial_view = Tensor([-0.0491679, -0.129549, 0.0])
         # initial_view = Tensor([0.06298, 0.281353, 0.0])
         # initial_view = Tensor([-0.02029, 0.352, 0.0])
         # initial_view = Tensor([-0.016616, 0.2232728, 0.0])
         # initial_view = Tensor([0.164693, 0.203633, 0.0])
         ################## Allensville ##################
-        initial_view = Tensor([0.0536, -0.1866, 0.0])
-        initial_view = Tensor([-0.15136, -0.15586, 0.0])
-        initial_view = Tensor([-0.22977, -0.085229, 0.0])
+        # initial_view = Tensor([0.0536, -0.1866, 0.0])
+        # initial_view = Tensor([-0.15136, -0.15586, 0.0])
+        # initial_view = Tensor([-0.22977, -0.085229, 0.0])
         # initial_view = Tensor([-0.3755, -0.3741, 0.0])
         # initial_view = Tensor([-0.00725, -0.31602, 0.0])
         # initial_view = Tensor([-0.29873, -0.15181, 0.0])
@@ -662,7 +662,7 @@ class Model():
         # initial_view = Tensor([-0.20589, 0.104213, 0.0])
         # initial_view = Tensor([-0.1027, 0.103383, 0.0])
         # initial_view = Tensor([-0.3620, 0.160228, 0.0])
-        initial_view = Tensor([-0.266721, 0.216986, 0.0])
+        # initial_view = Tensor([-0.266721, 0.216986, 0.0])
         # initial_view = Tensor([-0.390377, 0.101086, 0.0])
 
         ################## Superior ##################
@@ -674,7 +674,7 @@ class Model():
         # initial_view = Tensor([0.13973, -0.105728, 0.0])
         # initial_view = Tensor([0.0344291, 0.0116167, 0.0])
         # initial_view = Tensor([0.02166, 0.11691, 0.0])
-        # initial_view = Tensor([0.176635, 0.09965, 0.0])
+        initial_view = Tensor([0.176635, 0.09965, 0.0])
         # initial_view = Tensor([0.22952, -0.0374228, 0.0])
         # initial_view = Tensor([0.236685, -0.040921, 0.0])
         self.initial_view = initial_view
@@ -1736,6 +1736,53 @@ class Model():
     def predict_trajectory2(self, Xsrc, Xtar,
                             samples=200,
                             step_size=0.05,
+                            tol=0.01,
+                            w_goal=0.5,        # cost-level pull; 0 = pure field
+                            sample_bias=0.5,   # old sampling-level bias, units of step
+                            max_steps=200):
+
+        device = self.Params['Device']
+        Xsrc = torch.as_tensor(Xsrc, dtype=torch.float32, device=device)
+        Xtar = torch.as_tensor(Xtar, dtype=torch.float32, device=device)
+
+        current = Xsrc.clone()
+        height  = Xsrc[2].clone()
+        goal_xy = Xtar[:2]
+
+        traj = [current.detach().cpu().numpy()]
+
+        # goal half of the query never changes
+        XP = torch.zeros(samples, 2 * self.dim, device=device)
+        XP[:, 2] = height
+        XP[:, self.dim:] = Xtar.unsqueeze(0)
+
+        for _ in range(max_steps):
+            d_goal = torch.norm(current[:2] - goal_xy)
+            if d_goal < tol:
+                break
+
+            # directions on the circle: every sample is a full step
+            ang = 2.0 * math.pi * torch.rand(samples, device=device)
+            U = torch.stack((torch.cos(ang), torch.sin(ang)), dim=1)
+
+            r = torch.clamp(d_goal, max=step_size)          # don't overshoot
+            gdir = (goal_xy - current[:2]) / d_goal.clamp(min=1e-9)
+
+            cand_xy = current[:2].unsqueeze(0) + r * U + sample_bias * r * gdir.unsqueeze(0)
+            XP[:, 0:2] = cand_xy
+
+            tt   = self.TravelTimes(XP).detach()
+            dist = torch.norm(cand_xy - goal_xy.unsqueeze(0), dim=1)
+
+            best = torch.argmin(tt + w_goal * dist)
+            current = torch.cat((cand_xy[best], height.view(1)))
+            traj.append(current.detach().cpu().numpy())
+
+        traj.append(Xtar.detach().cpu().numpy())
+        return np.array(traj)
+    def predict_trajectory2_original(self, Xsrc, Xtar,
+                            samples=200,
+                            step_size=0.05,
                             tol=0.01):
 
         device = self.Params['Device']
@@ -1973,17 +2020,17 @@ class Model():
         goal = self.fixed_goal.detach().cpu().numpy().copy()
         goal[2] = height
 
-        traj_list = self.predict_trajectory2_gradient(
-            current_location,
-            goal,
-            step_size=0.005,
-            tol=0.01
-        )
-        # traj_list = self.predict_trajectory2(
+        # traj_list = self.predict_trajectory2_gradient(
         #     current_location,
         #     goal,
-        #     step_size=0.005
+        #     step_size=0.005,
+        #     tol=0.01
         # )
+        traj_list = self.predict_trajectory2(
+            current_location,
+            goal,
+            step_size=0.005
+        )
 
         step_size = 0.05
         accum_dis = 0.0

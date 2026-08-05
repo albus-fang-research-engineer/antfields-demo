@@ -35,8 +35,8 @@ def main():
     renderer = None
     if mode in [EXPLORATION]:
         from igibson.render.mesh_renderer.mesh_renderer_cpu import MeshRenderer
-        meshpath = "data/mesh_denmark_normalized.obj"
-        
+        meshpath = "data/mesh_superior_normalized.obj"
+        # meshpath = "data/mesh2.obj"
         renderer = MeshRenderer(width=1200, height=680)
         renderer.load_object(meshpath, scale=np.array([1, 1, 1]) * scale_factor)
         renderer.add_instance_group([0])

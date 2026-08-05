@@ -631,9 +631,17 @@ class Model():
             os.makedirs(self.folder)
         planning_times = []
         control_effort = 0.0
+        cc_segment_control_effort = 0.0
         deviations = []
         paths_planned = 0
         paths_cc_triggered = 0
+
+        def traversed_control_effort():
+            if self.trajectory is None or len(self.trajectory) < 2:
+                return 0.0
+            d = np.diff(np.asarray(self.trajectory)[:, :2], axis=0)
+            return float(np.sum(d ** 2))
+
         self.load_rawdata()
         is_one_frame = True
         while True:
@@ -725,6 +733,8 @@ class Model():
                             "collision": False,
                             "planning_times": planning_times,
                             "control_effort": control_effort,
+                            "traversed_control_effort": traversed_control_effort(),
+                            "cc_segment_control_effort": cc_segment_control_effort,
                             "deviations": deviations,
                             "paths_planned": paths_planned,
                             "paths_cc_triggered": paths_cc_triggered,
@@ -768,6 +778,15 @@ class Model():
                 optimized_segment_xy = np.asarray([p[:2] for p in optimized_segment])
                 steps = np.diff(optimized_segment_xy, axis=0)
                 control_effort += float(np.sum(steps ** 2))
+                # Effort over CC-active segments widened by one waypoint on each side:
+                # active step i (traj[i] -> traj[i+1]) pulls in steps i-1 and i+1,
+                # so a run of active flags [a, b] covers waypoints a-1 .. b+2.
+                # Union of step indices merges overlapping windows (no double counting).
+                cc_steps = np.zeros(len(steps), dtype=bool)
+                for i, active in enumerate(cc_active_flags[:traj_ind]):
+                    if active:
+                        cc_steps[max(i - 1, 0):min(i + 2, len(steps))] = True
+                cc_segment_control_effort += float(np.sum(steps[cc_steps] ** 2))
                 deviations.extend(
                     np.linalg.norm(optimized_segment_xy - nominal_segment_xy, axis=1).tolist()
                 )
@@ -830,6 +849,8 @@ class Model():
                         "collision": True,
                         "planning_times": planning_times,
                         "control_effort": control_effort,
+                        "traversed_control_effort": traversed_control_effort(),
+                        "cc_segment_control_effort": cc_segment_control_effort,
                         "deviations": deviations,
                         "paths_planned": paths_planned,
                         "paths_cc_triggered": paths_cc_triggered,
@@ -913,6 +934,8 @@ class Model():
             "collision": False,
             "planning_times": planning_times,
             "control_effort": control_effort,
+            "traversed_control_effort": traversed_control_effort(),
+            "cc_segment_control_effort": cc_segment_control_effort,
             "deviations": deviations,
             "paths_planned": paths_planned,
             "paths_cc_triggered": paths_cc_triggered,

@@ -68,6 +68,8 @@ def main():
     collisions = 0
     all_planning_times = []
     control_efforts = []
+    traversed_control_efforts = []
+    cc_segment_control_efforts = []
     all_deviations = []
     total_paths_planned = 0
     total_paths_cc_triggered = 0
@@ -79,9 +81,14 @@ def main():
         result = model.train()
         all_planning_times.extend(result["planning_times"])
         control_efforts.append(result["control_effort"])
+        traversed_control_efforts.append(result["traversed_control_effort"])
+        cc_segment_control_efforts.append(result["cc_segment_control_effort"])
         all_deviations.extend(result["deviations"])
         total_paths_planned += result["paths_planned"]
         total_paths_cc_triggered += result["paths_cc_triggered"]
+        print(f"Control effort (planned, executed segments): {result['control_effort'] * scale_factor**2:.4f} m^2")
+        print(f"Control effort (whole traversed path):       {result['traversed_control_effort'] * scale_factor**2:.4f} m^2")
+        print(f"Control effort (CC-optimized segments +/-1): {result['cc_segment_control_effort'] * scale_factor**2:.4f} m^2")
         if result["collision"]:
             collisions += 1
             print("Run ended with collision")
@@ -106,9 +113,15 @@ def main():
     print(f"Std planning time:  {np.std(planning_times)*1000:.2f} ms")
 
     control_efforts = np.array(control_efforts)
+    traversed_control_efforts = np.array(traversed_control_efforts)
+    cc_segment_control_efforts = np.array(cc_segment_control_efforts)
     deviations = np.array(all_deviations)
-    print(f"Mean control effort per run: {np.mean(control_efforts) * scale_factor**2:.4f} m^2")
-    print(f"Std control effort per run:  {np.std(control_efforts) * scale_factor**2:.4f} m^2")
+    print(f"Mean control effort per run (planned, executed segments): {np.mean(control_efforts) * scale_factor**2:.4f} m^2")
+    print(f"Std control effort per run  (planned, executed segments): {np.std(control_efforts) * scale_factor**2:.4f} m^2")
+    print(f"Mean control effort per run (whole traversed path):       {np.mean(traversed_control_efforts) * scale_factor**2:.4f} m^2")
+    print(f"Std control effort per run  (whole traversed path):       {np.std(traversed_control_efforts) * scale_factor**2:.4f} m^2")
+    print(f"Mean control effort per run (CC-optimized segments +/-1): {np.mean(cc_segment_control_efforts) * scale_factor**2:.4f} m^2")
+    print(f"Std control effort per run  (CC-optimized segments +/-1): {np.std(cc_segment_control_efforts) * scale_factor**2:.4f} m^2")
     if len(deviations) > 0:
         print(f"Waypoints compared:          {len(deviations)}")
         print(f"Mean deviation from nominal: {np.mean(deviations) * scale_factor:.4f} m")

@@ -291,7 +291,7 @@ class Model():
             run_id += 1
 
         self.folder = run_folder
-        # self.folder = None
+        self.folder = None
         # Pass the JSON information
         self.Params['Device'] = device
         self.Params['Pytorch Amp (bool)'] = False
@@ -331,7 +331,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0206  #0.1
+        self.maximum = 0.0166  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -378,10 +378,10 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.2762, -0.2695, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.1437, -0.0755, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.22977, -0.085229, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.15836, -0.125869, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.15836, -0.125869, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.229774, -0.086229, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.27321, -0.0265, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
 
         ######################    Denmark      ############################
         # self.fixed_goal = torch.tensor([-0.1509, 0.103031, 0.0], dtype=torch.float32)
@@ -408,7 +408,7 @@ class Model():
         # self.fixed_goal = torch.tensor([0.1217, -0.0936, 0.0], dtype=torch.float32)
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
-        self.enable_plot = True
+        self.enable_plot = False
     def gradient(self, y, x, create_graph=True):                                                               
                                                                                   
         grad_y = torch.ones_like(y)                                                                 
@@ -550,10 +550,10 @@ class Model():
         # initial_view = Tensor([-0.3755, -0.3741, 0.0])
         # initial_view = Tensor([-0.00725, -0.31602, 0.0])
         # initial_view = Tensor([-0.29873, -0.15181, 0.0])
-        initial_view = Tensor([-0.306212, 0.160368, 0.0])
+        # initial_view = Tensor([-0.306212, 0.160368, 0.0])
         # initial_view = Tensor([-0.25277, 0.14011, 0.0])
         # initial_view = Tensor([-0.16236, -0.123969, 0.0])
-        # initial_view = Tensor([-0.30698, -0.29587, 0.0])
+        initial_view = Tensor([-0.30698, -0.29587, 0.0])
 
         ################## Denmark ##################
         # initial_view = Tensor([-0.03756, -0.01000, 0.0])
@@ -698,7 +698,7 @@ class Model():
                         print("Reached goal! Stopping exploration.")
                         length = self.compute_path_length(self.trajectory)
                         print(f"Total traversed length: {length * self.scale_factor:.4f} m")
-                        if self.trajectory is not None:
+                        if self.trajectory is not None and self.folder is not None:
                             save_path = os.path.join(self.folder, "full_trajectory.npy")
                             np.save(save_path, self.trajectory)
                             print(f"Saved full trajectory to: {save_path}")
@@ -758,13 +758,13 @@ class Model():
                 print("nbv", nbv)
                 print("curview", self.cur_view)
                 # traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy())  # === CC ABLATION: superseded by optimized segment ===
-                if traj_list is not None and self.epoch % 50 == 0:
+                if traj_list is not None and self.epoch % 50 == 0 and self.folder is not None:
                     save_path = os.path.join(self.folder, f"planned_path_{self.epoch}.npy")
                     np.save(save_path, traj_list)
-                if self.trajectory is not None and self.epoch % 50 == 0:
+                if self.trajectory is not None and self.epoch % 50 == 0 and self.folder is not None:
                     save_path = os.path.join(self.folder, f"traversed_path_{self.epoch}.npy")
                     np.save(save_path, self.trajectory)
-                if self.epoch % 50 == 0:
+                if self.epoch % 50 == 0 and self.folder is not None:
                     sp = surface_points.detach().cpu().numpy() if torch.is_tensor(surface_points) else np.asarray(surface_points)
                     np.save(os.path.join(self.folder, f"surface_points_{self.epoch}.npy"), sp)
 
@@ -1565,6 +1565,16 @@ class Model():
 
         dist = np.linalg.norm(current_pos[:2] - goal[:2])
         return dist < tol
+    # def is_stuck(self, threshold=0.005):
+    #     if len(self.prev_positions) < 2:
+    #         return False
+
+    #     start = self.prev_positions[-2]
+    #     end   = self.prev_positions[-1]
+
+    #     movement = np.linalg.norm(end[:2] - start[:2])
+
+    #     return movement < threshold
     def is_stuck(self, threshold=0.008):
         if len(self.prev_positions) < 3:
             return False

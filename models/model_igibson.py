@@ -36,7 +36,7 @@ import json
 import cv2 
 from load_njsdf.inference import load_sdf_2d_model
 torch.backends.cudnn.benchmark = True
-from chance_constrained_planning.rollout import rollout_optimized
+from chance_constrained_planning.rollout import rollout_optimized, control_effort, modified_segments
 from chance_constrained_planning.optimizer import solve_step
 EXPLORATION = 1 
 READ_FROM_COOKED_DATA = 2
@@ -743,6 +743,30 @@ class Model():
         policy_times = []           # <-- add
         optimizer_times = []        # <-- add
         total_planning_times = []
+
+        # ---- chance-constrained optimizer metrics (per planning call) ----
+        opt_modified_flags = []        # did the optimizer modify the nominal path?
+        nominal_efforts = []           # control effort of nominal planned path
+        optimized_efforts = []         # control effort of optimized planned path
+        segment_efforts = []           # effort of modified segments (+/- 1 waypoint), optimized
+        segment_nominal_efforts = []   # effort of the same segments on the nominal path
+        deviation_means = []           # mean nominal-vs-optimized waypoint deviation
+        deviation_maxes = []           # max nominal-vs-optimized waypoint deviation
+
+        def _metrics_result():
+            return {
+                "policy_times": policy_times,
+                "optimizer_times": optimizer_times,
+                "total_planning_times": total_planning_times,
+                "optimizer_modified": opt_modified_flags,
+                "nominal_efforts": nominal_efforts,
+                "optimized_efforts": optimized_efforts,
+                "segment_efforts": segment_efforts,
+                "segment_nominal_efforts": segment_nominal_efforts,
+                "deviation_means": deviation_means,
+                "deviation_maxes": deviation_maxes,
+                "traversed_effort": control_effort(self.trajectory) if self.trajectory is not None else None,
+            }
         while True:
             if True:
                 print("Current Viewpoint:", self.cur_view)
@@ -838,9 +862,7 @@ class Model():
                             return {
                                 "length": length,
                                 "collision": False,
-                                "policy_times": policy_times,
-                                "optimizer_times": optimizer_times,
-                                "total_planning_times": total_planning_times,
+                                **_metrics_result(),
                             }
                         # break
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0) 
@@ -879,18 +901,19 @@ class Model():
                     torch.cuda.synchronize()
 
                 t2 = time.perf_counter()
-                # ---- ABLATION: no local optimization ----
-                optimized_traj_list = list(traj_list)
-                # optimized_traj_list = rollout_optimized(
-                #     start,
-                #     path,
-                #     obstacle_points,
-                #     solve_step,
-                #     self.dist_model,
-                #     self.Params['Device'],
-                #     epoch = self.epoch,
-                #     folder=self.folder
-                # )
+                # ---- Chance-constrained local optimization ----
+                # folder=None: skips per-step debug figures inside solve_step;
+                # use the diagnostics block below for figures.
+                optimized_traj_list, qp_active_flags = rollout_optimized(
+                    start,
+                    path,
+                    obstacle_points,
+                    solve_step,
+                    self.dist_model,
+                    self.Params['Device'],
+                    epoch = self.epoch,
+                    folder=None
+                )
                 if torch.cuda.is_available():
                     torch.cuda.synchronize()
                 t3 = time.perf_counter()
@@ -926,11 +949,10 @@ class Model():
                 policy_times.append(policy_time)             # <-- add
                 optimizer_times.append(optimizer_time)       # <-- add
                 total_planning_times.append(total_time)      # <-- add
-                # ---- DIAGNOSTICS ONLY (ablation intact) ----
-                # Runs solve_step/rollout_optimized purely for their side effects
-                # (figures + npy). Return value is discarded, so the executed path
-                # stays unoptimized. Sits outside t2/t3 so it never enters
-                # optimizer_times.
+                # ---- DIAGNOSTICS ONLY ----
+                # Re-runs solve_step/rollout_optimized purely for their side
+                # effects (figures + npy). Return value is discarded. Sits
+                # outside t2/t3 so it never enters optimizer_times.
                 if (self.enable_diagnostics
                         and self.enable_plot
                         and self.folder is not None
@@ -956,6 +978,37 @@ class Model():
                 traj_list = np.array(traj_list)
                 print("traj_list size is: ", traj_list.shape)
                 print("optimized_traj_list size is: ", len(optimized_traj_list))
+
+                # ---- Optimizer-vs-nominal metrics ----
+                opt_np = np.asarray(optimized_traj_list)
+                nominal_np = np.asarray(traj_list)
+                # Flags per QP solve align with waypoints traj[1:]; index 0 is the start.
+                wp_flags = np.zeros(len(opt_np), dtype=bool)
+                wp_flags[1:1 + len(qp_active_flags)] = qp_active_flags
+                path_modified = bool(wp_flags.any())
+
+                devs = np.linalg.norm(nominal_np[:, :2] - opt_np[:, :2], axis=1)
+                nominal_effort = control_effort(nominal_np)
+                optimized_effort = control_effort(opt_np)
+                seg_bounds = modified_segments(wp_flags)
+                call_seg_efforts = [control_effort(opt_np[s:e + 1]) for s, e in seg_bounds]
+                call_seg_nominal_efforts = [control_effort(nominal_np[s:e + 1]) for s, e in seg_bounds]
+
+                opt_modified_flags.append(path_modified)
+                nominal_efforts.append(nominal_effort)
+                optimized_efforts.append(optimized_effort)
+                segment_efforts.extend(call_seg_efforts)
+                segment_nominal_efforts.extend(call_seg_nominal_efforts)
+                deviation_means.append(float(devs.mean()))
+                deviation_maxes.append(float(devs.max()))
+
+                print(f"Optimizer modified path: {path_modified} "
+                      f"({int(wp_flags.sum())}/{len(qp_active_flags)} waypoints, "
+                      f"{len(seg_bounds)} segment(s))")
+                print(f"Planned control effort   nominal: {nominal_effort:.6f}  optimized: {optimized_effort:.6f}")
+                if call_seg_efforts:
+                    print(f"Modified-segment effort  optimized: {sum(call_seg_efforts):.6f}  nominal: {sum(call_seg_nominal_efforts):.6f}")
+                print(f"Nominal-vs-optimized deviation  mean: {devs.mean():.6f}  max: {devs.max():.6f}")
                 if self.mode == EXPLORATION:
                     optimized_segment = optimized_traj_list[:traj_ind+1]
                 # Now NBV is taken from the optimized trajectory
@@ -1016,9 +1069,7 @@ class Model():
                     return {
                         "length": None,
                         "collision": True,
-                        "policy_times": policy_times,
-                        "optimizer_times": optimizer_times,
-                        "total_planning_times": total_planning_times,
+                        **_metrics_result(),
                     }
                 
                 #? ******************SAVINGS start*******************
@@ -1093,7 +1144,12 @@ class Model():
             with torch.no_grad():
                 self.save(epoch=self.epoch, val_loss=total_diff)
 
-        return None
+        # Run ended without reaching the goal (frame budget exhausted).
+        return {
+            "length": None,
+            "collision": False,
+            **_metrics_result(),
+        }
     def train_core(self, epoch, frame_data, is_one_frame=True):
         beta = 1.0
         prev_diff = 1.0

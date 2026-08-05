@@ -69,15 +69,35 @@ def main():
     all_policy_times = []          # <-- add
     all_optimizer_times = []       # <-- add
     all_total_times = []           # <-- add
+
+    # ---- chance-constrained optimizer stats ----
+    all_modified = []              # per planning call: optimizer changed nominal path?
+    all_nominal_efforts = []       # planned path control effort (nominal)
+    all_optimized_efforts = []     # planned path control effort (optimized)
+    all_segment_efforts = []       # modified segments +/- 1 waypoint (optimized)
+    all_segment_nominal_efforts = []
+    all_dev_means = []             # nominal-vs-optimized deviation per call
+    all_dev_maxes = []
+    traversed_efforts = []         # executed trajectory control effort per run
+
     for i in range(num_runs):
         print(f"\n===== Run {i+1}/{num_runs} =====")
 
         model = md.Model(global_folder, 3, scale_factor, mode, renderer, device='cuda:0')
-        
+
         result = model.train()
         all_policy_times.extend(result["policy_times"])              # <-- add
         all_optimizer_times.extend(result["optimizer_times"])        # <-- add
         all_total_times.extend(result["total_planning_times"])       # <-- add
+        all_modified.extend(result["optimizer_modified"])
+        all_nominal_efforts.extend(result["nominal_efforts"])
+        all_optimized_efforts.extend(result["optimized_efforts"])
+        all_segment_efforts.extend(result["segment_efforts"])
+        all_segment_nominal_efforts.extend(result["segment_nominal_efforts"])
+        all_dev_means.extend(result["deviation_means"])
+        all_dev_maxes.extend(result["deviation_maxes"])
+        if result["traversed_effort"] is not None:
+            traversed_efforts.append(result["traversed_effort"])
         if result["collision"]:
             collisions += 1
             print("Run ended with collision")
@@ -106,6 +126,28 @@ def main():
         print(f"Mean total plan time:  {np.mean(total_times)*1000:.2f} ms  (std {np.std(total_times)*1000:.2f})")
     else:
         print("No planning calls recorded.")
+
+    # ---- chance-constrained optimizer stats ----
+    # Control effort = sum of squared xy step displacements; x scale_factor^2 -> m^2.
+    effort_scale = scale_factor ** 2
+    print("\n----- Chance-constrained optimizer stats -----")
+    if len(all_modified) > 0:
+        n_mod = int(np.sum(all_modified))
+        print(f"Paths modified by optimizer:  {100.0 * n_mod / len(all_modified):.1f}% "
+              f"({n_mod}/{len(all_modified)} planning calls)")
+    if len(traversed_efforts) > 0:
+        print(f"Traversed path control effort:   mean {np.mean(traversed_efforts) * effort_scale:.4f} m^2 per run "
+              f"(std {np.std(traversed_efforts) * effort_scale:.4f})")
+    if len(all_optimized_efforts) > 0:
+        print(f"Planned path control effort:     nominal {np.mean(all_nominal_efforts) * effort_scale:.6f} m^2, "
+              f"optimized {np.mean(all_optimized_efforts) * effort_scale:.6f} m^2 (mean per planning call)")
+    if len(all_segment_efforts) > 0:
+        print(f"Optimized-segment control effort: optimized {np.mean(all_segment_efforts) * effort_scale:.6f} m^2, "
+              f"nominal {np.mean(all_segment_nominal_efforts) * effort_scale:.6f} m^2 "
+              f"(mean over {len(all_segment_efforts)} modified segments, +/- 1 waypoint)")
+    if len(all_dev_means) > 0:
+        print(f"Nominal-vs-optimized deviation:  mean {np.mean(all_dev_means) * scale_factor:.6f} m, "
+              f"max {np.max(all_dev_maxes) * scale_factor:.6f} m")
 
 if __name__ == '__main__':
     main()

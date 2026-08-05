@@ -56,10 +56,16 @@ def solve_step(p0, p_goal, obstacle_points, model, device, epoch, path_start, fo
     b = (BETA * sigma - mu).astype(np.float64)           # (K,)
 
     try:
-        dp = quadprog.solve_qp(G, a, C, b, meq=0)[0]
+        sol = quadprog.solve_qp(G, a, C, b, meq=0)
+        dp = sol[0]
+        # sol[4] holds the Lagrange multipliers: any positive multiplier means a
+        # chance constraint is active, i.e. the optimizer actually deviated from
+        # the pure goal-tracking step.
+        constraint_active = bool(np.any(sol[4] > 1e-9))
     except ValueError:
         # Linearized chance constraints infeasible — stay put.
         dp = np.zeros(2)
+        constraint_active = True
         if folder is not None:
             print("WARNING: QP infeasible at step", step_id)
 
@@ -70,7 +76,7 @@ def solve_step(p0, p_goal, obstacle_points, model, device, epoch, path_start, fo
         plot_chance_debug(p0, p_next, p_goal, obstacle_points,
                           mu, sigma, grad, obs_k, folder, epoch, step_id)
 
-    return p_next, mu, sigma
+    return p_next, mu, sigma, constraint_active
 
 
 def plot_chance_debug(robot_xy, p_next, unoptimized_waypoint, obstacle_points,

@@ -387,7 +387,7 @@ class Model():
             run_id += 1
 
         self.folder = run_folder
-        self.folder = None
+        # self.folder = None
         # Pass the JSON information
         self.Params['Device'] = device
         self.Params['Pytorch Amp (bool)'] = False
@@ -429,7 +429,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0156  #0.1
+        self.maximum = 0.0172  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -491,11 +491,11 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
         ######################    Superior      ############################
         # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
@@ -506,7 +506,7 @@ class Model():
         # self.fixed_goal = torch.tensor([0.1217, -0.0936, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.19131, 0.00039, 0.0], dtype=torch.float32)
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
-        self.enable_plot = False
+        self.enable_plot = True
     def gradient(self, y, x, create_graph=True):                                                               
                                                                                   
         grad_y = torch.ones_like(y)                                                                 
@@ -660,12 +660,12 @@ class Model():
         # initial_view = Tensor([-0.20589, 0.104213, 0.0])
         # initial_view = Tensor([-0.1027, 0.103383, 0.0])
         # initial_view = Tensor([-0.3620, 0.160228, 0.0])
-        # initial_view = Tensor([-0.266721, 0.216986, 0.0])
+        initial_view = Tensor([-0.266721, 0.216986, 0.0])
         # initial_view = Tensor([-0.390377, 0.101086, 0.0])
 
         ################## Superior ##################
         # initial_view = Tensor([-0.0797515, -0.034389, 0.0])
-        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        # initial_view = Tensor([-0.08850, 0.0915668, 0.0])
         # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
         # initial_view = Tensor([0.01909, -0.10586, 0.0])
         # initial_view = Tensor([0.02132, -0.102299, 0.0])
@@ -1859,7 +1859,7 @@ class Model():
         goal = self.fixed_goal.detach().cpu().numpy().copy()
         goal[2] = height
 
-        traj_list = self.predict_trajectory2(
+        traj_list = self.predict_trajectory2_gradient(
             current_location,
             goal,
             step_size=0.005

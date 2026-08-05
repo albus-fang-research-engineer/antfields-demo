@@ -447,7 +447,7 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
     # return points[0:5000], speeds[0:5000], bounds[0:5000], obstacle_points
-    return points[0:2066], speeds[0:2066], bounds[0:2066], obstacle_points
+    return points[0:3166], speeds[0:3166], bounds[0:3166], obstacle_points
 
 def sample_points_from_pos(model, position, scale_factor=1):
     """

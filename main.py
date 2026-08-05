@@ -35,7 +35,7 @@ def main():
     renderer = None
     if mode in [EXPLORATION]:
         from igibson.render.mesh_renderer.mesh_renderer_cpu import MeshRenderer
-        meshpath = "data/mesh_superior_normalized.obj"
+        meshpath = "data/mesh_denmark_normalized.obj"
         
         renderer = MeshRenderer(width=1200, height=680)
         renderer.load_object(meshpath, scale=np.array([1, 1, 1]) * scale_factor)
@@ -64,7 +64,7 @@ def main():
 
     print(f"Global run folder: {global_folder}")
     lengths = []
-    num_runs = 20
+    num_runs = 10
     collisions = 0
     all_policy_times = []          # <-- add
     all_optimizer_times = []       # <-- add

@@ -35,6 +35,12 @@ from dataprocessing import isdf_sample, data_pc_validate, transform
 import json 
 import cv2 
 
+# === CC ABLATION ADDITION: imports for neural distance model + chance-constrained optimizer ===
+from load_njsdf.inference import load_sdf_2d_model
+from chance_constrained_planning.rollout import rollout_optimized
+from chance_constrained_planning.optimizer import solve_step
+# === END CC ABLATION ADDITION ===
+
 torch.backends.cudnn.benchmark = True
 
 EXPLORATION = 1 
@@ -331,6 +337,13 @@ class Model():
         self.free_pc = []
 
         self.init_network()
+
+        # === CC ABLATION ADDITION: load neural distance (SDF) model used by the CC optimizer ===
+        self.dist_model, self.dist_device = load_sdf_2d_model()
+        self.dist_model = self.dist_model.to(self.Params['Device'])
+        self.dist_device = self.Params['Device']
+        # === END CC ABLATION ADDITION ===
+
         self.prev_positions = []
 
         self.fixed_goal = torch.tensor([ 0.05,  -0.076, 0.0], dtype=torch.float32)
@@ -714,12 +727,37 @@ class Model():
                     planning_times.append(time.time() - t_planning_start)
                     nbv = Tensor(traj_list[traj_ind])
 
+                # === CC ABLATION ADDITION: chance-constrained optimization of the nominal path ===
+                start = traj_list[0]
+                path = traj_list[1:]
+
+                t_cc_start = time.time()
+                optimized_traj_list = rollout_optimized(
+                    start,
+                    path,
+                    surface_points,          # baseline's name for what the CC file calls obstacle_points
+                    solve_step,
+                    self.dist_model,
+                    self.Params['Device'],
+                    epoch=self.epoch,
+                    folder=self.folder
+                )
+                planning_times[-1] += time.time() - t_cc_start  # include optimizer time in planning time
+
+                optimized_traj_list = [
+                    p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p)
+                    for p in optimized_traj_list
+                ]
+
+                optimized_segment = optimized_traj_list[:traj_ind + 1]
+                nbv = Tensor(optimized_traj_list[traj_ind])   # NBV now taken from the optimized trajectory
+                # === END CC ABLATION ADDITION ===
 
                 # print("*"*10)
                 # print("self.dataset.Ts[0][:3, 3]/self.scale_factor", self.dataset.Ts[0][:3, 3]/self.scale_factor)
                 print("nbv", nbv)
                 print("curview", self.cur_view)
-                traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy())
+                # traj = self.predict_trajectory2(self.cur_view.detach().clone().cpu().numpy(), nbv.detach().clone().cpu().numpy())  # === CC ABLATION: superseded by optimized segment ===
                 if traj_list is not None and self.epoch % 50 == 0:
                     save_path = os.path.join(self.folder, f"planned_path_{self.epoch}.npy")
                     np.save(save_path, traj_list)
@@ -730,16 +768,17 @@ class Model():
                     sp = surface_points.detach().cpu().numpy() if torch.is_tensor(surface_points) else np.asarray(surface_points)
                     np.save(os.path.join(self.folder, f"surface_points_{self.epoch}.npy"), sp)
 
-                if self.mode == EXPLORATION:
-                    traj = traj_list[:traj_ind+1]
+                # === CC ABLATION ADDITION: execute the optimized segment instead of the nominal one ===
+                segment_np = np.array(optimized_segment)
                 if self.trajectory is None:
-                    self.trajectory = traj
+                    self.trajectory = segment_np
                 else:
-                    self.trajectory = np.concatenate([self.trajectory, traj], axis=0) 
-                print("traj is:", traj)
+                    self.trajectory = np.concatenate([self.trajectory, segment_np[1:]], axis=0)  # [1:] dedupes shared endpoint
+                print("executed segment is:", segment_np)
+                # === END CC ABLATION ADDITION ===
                 
                 collision, idxs = check_collision_with_surface_points(
-                    traj,
+                    segment_np,
                     surface_points,
                     robot_radius=0.0105,
                     return_details=True
@@ -795,8 +834,13 @@ class Model():
                 break
             
             if self.mode != READ_FROM_COOKED_DATA:
-                self.cur_view = nbv
-                # self.cur_view =
+                # === CC ABLATION ADDITION: advance from the optimized segment endpoint (same point as nbv, kept on device) ===
+                self.cur_view = torch.as_tensor(
+                    optimized_segment[-1],
+                    dtype=torch.float32,
+                    device=self.Params['Device']
+                )
+                # === END CC ABLATION ADDITION ===
                 # track robot positions
                 self.prev_positions.append(self.cur_view.detach().cpu().numpy())
                 self.currently_traversed = self.trajectory.copy()

@@ -331,7 +331,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0136  #0.1
+        self.maximum = 0.0116  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -392,12 +392,12 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
 
         ######################    Superior      ############################
         # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
@@ -570,12 +570,12 @@ class Model():
         # initial_view = Tensor([-0.20589, 0.104213, 0.0])
         # initial_view = Tensor([-0.1027, 0.103383, 0.0])
         # initial_view = Tensor([-0.3620, 0.160228, 0.0])
-        # initial_view = Tensor([-0.266721, 0.216986, 0.0])
+        initial_view = Tensor([-0.266721, 0.216986, 0.0])
         # initial_view = Tensor([-0.390377, 0.101086, 0.0])
 
         ################## Superior ##################
         # initial_view = Tensor([-0.0797515, -0.034389, 0.0])
-        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        # initial_view = Tensor([-0.08850, 0.0915668, 0.0])
         # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
         # initial_view = Tensor([0.01909, -0.10586, 0.0])
         # initial_view = Tensor([0.02132, -0.102299, 0.0])
@@ -1670,26 +1670,26 @@ class Model():
 
         dist = np.linalg.norm(current_pos[:2] - goal[:2])
         return dist < tol
-    def is_stuck(self, threshold=0.005):
-        if len(self.prev_positions) < 2:
-            return False
-
-        start = self.prev_positions[-2]
-        end   = self.prev_positions[-1]
-
-        movement = np.linalg.norm(end[:2] - start[:2])
-
-        return movement < threshold
-    # def is_stuck(self, threshold=0.008):
-    #     if len(self.prev_positions) < 3:
+    # def is_stuck(self, threshold=0.005):
+    #     if len(self.prev_positions) < 2:
     #         return False
 
-    #     start = self.prev_positions[0]
+    #     start = self.prev_positions[-2]
     #     end   = self.prev_positions[-1]
 
     #     movement = np.linalg.norm(end[:2] - start[:2])
 
     #     return movement < threshold
+    def is_stuck(self, threshold=0.008):
+        if len(self.prev_positions) < 3:
+            return False
+
+        start = self.prev_positions[0]
+        end   = self.prev_positions[-1]
+
+        movement = np.linalg.norm(end[:2] - start[:2])
+
+        return movement < threshold
     def compute_path_length(self, path):
         if path is None or len(path) < 2:
             return 0.0

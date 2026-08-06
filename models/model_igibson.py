@@ -387,17 +387,17 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.1509, 0.103031, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.2605, 0.03898, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.130732, 0.0708056, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.036236, 0.215998, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.036236, 0.215998, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.263, 0.0489, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
 
         ######################    Superior      ############################
         # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
@@ -565,17 +565,17 @@ class Model():
         # initial_view = Tensor([-0.03756, -0.01000, 0.0])
         # initial_view = Tensor([-0.0164155, 0.201127, 0.0])
         # initial_view = Tensor([-0.0101138, -0.02388, 0.0])
-        # initial_view = Tensor([-0.26375, 0.0504, 0.0])
+        initial_view = Tensor([-0.26375, 0.0504, 0.0])
         # initial_view = Tensor([-0.030326, 0.18998, 0.0])
         # initial_view = Tensor([-0.20589, 0.104213, 0.0])
         # initial_view = Tensor([-0.1027, 0.103383, 0.0])
         # initial_view = Tensor([-0.3620, 0.160228, 0.0])
-        initial_view = Tensor([-0.266721, 0.216986, 0.0])
+        # initial_view = Tensor([-0.266721, 0.216986, 0.0])
         # initial_view = Tensor([-0.390377, 0.101086, 0.0])
 
         ################## Superior ##################
         # initial_view = Tensor([-0.0797515, -0.034389, 0.0])
-        # initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
         # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
         # initial_view = Tensor([0.01909, -0.10586, 0.0])
         # initial_view = Tensor([0.02132, -0.102299, 0.0])
@@ -1658,6 +1658,7 @@ class Model():
 
         return traj_list, index - 1
     def reached_goal(self, current_pos, tol=0.006):
+    # def reached_goal(self, current_pos, tol=0.012):
         """
         Check if current position is close enough to goal.
         """

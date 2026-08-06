@@ -36,6 +36,7 @@ def main():
     if mode in [EXPLORATION]:
         from igibson.render.mesh_renderer.mesh_renderer_cpu import MeshRenderer
         meshpath = "data/mesh_superior_normalized.obj"
+        meshpath = "data/mesh_denmark_normalized.obj"
         # meshpath = "data/mesh2.obj"
         renderer = MeshRenderer(width=1200, height=680)
         renderer.load_object(meshpath, scale=np.array([1, 1, 1]) * scale_factor)
@@ -143,6 +144,12 @@ def main():
               f"(std {np.std(all_nominal_efforts) * effort_scale:.6f}), "
               f"optimized {np.mean(all_optimized_efforts) * effort_scale:.6f} m^2 "
               f"(std {np.std(all_optimized_efforts) * effort_scale:.6f}) (mean per planning call)")
+        nominal_arr = np.array(all_nominal_efforts)
+        optimized_arr = np.array(all_optimized_efforts)
+        valid = nominal_arr > 0
+        added_pcts = 100.0 * (optimized_arr[valid] - nominal_arr[valid]) / nominal_arr[valid]
+        print(f"Added control effort vs nominal: mean {np.mean(added_pcts):+.2f}% "
+              f"(std {np.std(added_pcts):.2f}) (per planning call)")
     if len(all_segment_efforts) > 0:
         print(f"Optimized-segment control effort: optimized {np.mean(all_segment_efforts) * effort_scale:.6f} m^2 "
               f"(std {np.std(all_segment_efforts) * effort_scale:.6f}), "

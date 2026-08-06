@@ -429,7 +429,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0146  #0.1
+        self.maximum = 0.0116  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -464,7 +464,7 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.055632,  -0.1266, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.009981,  0.339293, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0397859,  -0.000756, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.0770818,  -0.0360409, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.0770818,  -0.0360409, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.0615918, 0.21549, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.13926, 0.2283, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.089705, 0.365, 0.0], dtype=torch.float32)
@@ -495,14 +495,14 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
         ######################    Superior      ############################
         # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.069989, 0.0141856, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.11836, 0.05037, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.050712, 0.21064, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.22915, 0.0680198, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.22915, 0.0680198, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.1217, -0.0936, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.19131, 0.00039, 0.0], dtype=torch.float32)
         self.fixed_goal  = self.fixed_goal.to(self.Params['Device'])
@@ -636,7 +636,7 @@ class Model():
         # initial_view = Tensor([0.02538, -0.22976, 0.0])
         # initial_view = Tensor([0.15026, 0.23365, 0.0])
         # initial_view = Tensor([-0.0136337, 0.145519, 0.0])
-        initial_view = Tensor([-0.0491679, -0.129549, 0.0])
+        # initial_view = Tensor([-0.0491679, -0.129549, 0.0])
         # initial_view = Tensor([0.06298, 0.281353, 0.0])
         # initial_view = Tensor([-0.02029, 0.352, 0.0])
         # initial_view = Tensor([-0.016616, 0.2232728, 0.0])
@@ -667,14 +667,14 @@ class Model():
 
         ################## Superior ##################
         # initial_view = Tensor([-0.0797515, -0.034389, 0.0])
-        # initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
         # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
         # initial_view = Tensor([0.01909, -0.10586, 0.0])
         # initial_view = Tensor([0.02132, -0.102299, 0.0])
         # initial_view = Tensor([0.13973, -0.105728, 0.0])
         # initial_view = Tensor([0.0344291, 0.0116167, 0.0])
         # initial_view = Tensor([0.02166, 0.11691, 0.0])
-        initial_view = Tensor([0.176635, 0.09965, 0.0])
+        # initial_view = Tensor([0.176635, 0.09965, 0.0])
         # initial_view = Tensor([0.22952, -0.0374228, 0.0])
         # initial_view = Tensor([0.236685, -0.040921, 0.0])
         self.initial_view = initial_view

@@ -64,7 +64,7 @@ def main():
 
     print(f"Global run folder: {global_folder}")
     lengths = []
-    num_runs = 20
+    num_runs = 5
     collisions = 0
     all_policy_times = []          # <-- add
     all_optimizer_times = []       # <-- add
@@ -139,14 +139,19 @@ def main():
         print(f"Traversed path control effort:   mean {np.mean(traversed_efforts) * effort_scale:.4f} m^2 per run "
               f"(std {np.std(traversed_efforts) * effort_scale:.4f})")
     if len(all_optimized_efforts) > 0:
-        print(f"Planned path control effort:     nominal {np.mean(all_nominal_efforts) * effort_scale:.6f} m^2, "
-              f"optimized {np.mean(all_optimized_efforts) * effort_scale:.6f} m^2 (mean per planning call)")
+        print(f"Planned path control effort:     nominal {np.mean(all_nominal_efforts) * effort_scale:.6f} m^2 "
+              f"(std {np.std(all_nominal_efforts) * effort_scale:.6f}), "
+              f"optimized {np.mean(all_optimized_efforts) * effort_scale:.6f} m^2 "
+              f"(std {np.std(all_optimized_efforts) * effort_scale:.6f}) (mean per planning call)")
     if len(all_segment_efforts) > 0:
-        print(f"Optimized-segment control effort: optimized {np.mean(all_segment_efforts) * effort_scale:.6f} m^2, "
+        print(f"Optimized-segment control effort: optimized {np.mean(all_segment_efforts) * effort_scale:.6f} m^2 "
+              f"(std {np.std(all_segment_efforts) * effort_scale:.6f}), "
               f"nominal {np.mean(all_segment_nominal_efforts) * effort_scale:.6f} m^2 "
+              f"(std {np.std(all_segment_nominal_efforts) * effort_scale:.6f}) "
               f"(mean over {len(all_segment_efforts)} modified segments, +/- 1 waypoint)")
     if len(all_dev_means) > 0:
-        print(f"Nominal-vs-optimized deviation:  mean {np.mean(all_dev_means) * scale_factor:.6f} m, "
+        print(f"Nominal-vs-optimized deviation:  mean {np.mean(all_dev_means) * scale_factor:.6f} m "
+              f"(std {np.std(all_dev_means) * scale_factor:.6f}), "
               f"max {np.max(all_dev_maxes) * scale_factor:.6f} m")
 
 if __name__ == '__main__':

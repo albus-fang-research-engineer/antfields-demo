@@ -331,7 +331,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0166  #0.1
+        self.maximum = 0.0136  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -346,10 +346,10 @@ class Model():
 
         self.prev_positions = []
 
-        self.fixed_goal = torch.tensor([ 0.05,  -0.076, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([ 0.05,  -0.076, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0] , dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0] , dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.15,  0.0396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.2816,   0.1116,  0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.05626768, -0.00738018, 0.0], dtype=torch.float32)
@@ -363,7 +363,7 @@ class Model():
         # self.fixed_goal = torch.tensor([0.062, -0.026, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.0296, -0.236, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.055632,  -0.1266, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.009981,  0.339293, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.009981,  0.339293, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0397859,  -0.000756, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0770818,  -0.0360409, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.0615918, 0.21549, 0.0], dtype=torch.float32)
@@ -392,12 +392,12 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
 
         ######################    Superior      ############################
         # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
@@ -518,11 +518,17 @@ class Model():
 
     def load_rawdata(self):
         #! load data
+
+
+
+
+        
+        ################## Map 1 ##################
         # startpoint
-        initial_view = Tensor([-0.12, -0.046, 0])
+        # initial_view = Tensor([-0.12, -0.046, 0])
         # initial_view = Tensor([ 0.042176,  -0.02060163, 0.0])
         # initial_view = Tensor([0.36,  0.151, 0.0])
-        # initial_view = Tensor([-0.05826768, -0.00738018, 0.0])
+        initial_view = Tensor([-0.05826768, -0.00738018, 0.0])
         # initial_view = Tensor([0.0726, -0.05, 0.0])
         # initial_view = Tensor([0.166, 0.0396, 0.0 ])
         # initial_view = Tensor([-0.1886,   0.12296,  0.0])
@@ -535,7 +541,7 @@ class Model():
         # initial_view = Tensor([ 0.011,  -0.116, 0.0])
         # initial_view = Tensor([ -0.0036,  -0.0326, 0.0])
         # initial_view = Tensor([0.02538, -0.22976, 0.0])
-        initial_view = Tensor([0.15026, 0.23365, 0.0])
+        # initial_view = Tensor([0.15026, 0.23365, 0.0])
         # initial_view = Tensor([-0.0136337, 0.145519, 0.0])
         # initial_view = Tensor([-0.0491679, -0.129549, 0.0])
         # initial_view = Tensor([0.06298, 0.281353, 0.0])
@@ -564,12 +570,12 @@ class Model():
         # initial_view = Tensor([-0.20589, 0.104213, 0.0])
         # initial_view = Tensor([-0.1027, 0.103383, 0.0])
         # initial_view = Tensor([-0.3620, 0.160228, 0.0])
-        initial_view = Tensor([-0.266721, 0.216986, 0.0])
+        # initial_view = Tensor([-0.266721, 0.216986, 0.0])
         # initial_view = Tensor([-0.390377, 0.101086, 0.0])
 
         ################## Superior ##################
         # initial_view = Tensor([-0.0797515, -0.034389, 0.0])
-        # initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
         # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
         # initial_view = Tensor([0.01909, -0.10586, 0.0])
         # initial_view = Tensor([0.02132, -0.102299, 0.0])
@@ -632,9 +638,14 @@ class Model():
         planning_times = []
         control_effort = 0.0
         cc_segment_control_effort = 0.0
+        planned_path_control_efforts = []  # one entry per planning call: effort of the full planned path (start -> goal)
+        nominal_path_control_efforts = []  # same per-call indexing, but for the nominal (pre-CC) planned path
+        cc_active_per_plan = []            # same per-call indexing: whether CC modified the executed segment
+        cc_active_full_path_per_plan = []  # same per-call indexing: whether CC modified any step of the full planned path
         deviations = []
         paths_planned = 0
         paths_cc_triggered = 0
+        cc_modified_paths = []  # one record per planning call where CC actually modified the executed segment
 
         def traversed_control_effort():
             if self.trajectory is None or len(self.trajectory) < 2:
@@ -735,9 +746,14 @@ class Model():
                             "control_effort": control_effort,
                             "traversed_control_effort": traversed_control_effort(),
                             "cc_segment_control_effort": cc_segment_control_effort,
+                            "planned_path_control_efforts": planned_path_control_efforts,
+                            "nominal_path_control_efforts": nominal_path_control_efforts,
+                            "cc_active_per_plan": cc_active_per_plan,
+                            "cc_active_full_path_per_plan": cc_active_full_path_per_plan,
                             "deviations": deviations,
                             "paths_planned": paths_planned,
                             "paths_cc_triggered": paths_cc_triggered,
+                            "cc_modified_paths": cc_modified_paths,
                         }
                     t_planning_start = time.time()
                     # traj_list, traj_ind = self.policy_occ(self.cur_view.detach().clone().cpu().numpy(), height=0)
@@ -778,6 +794,16 @@ class Model():
                 optimized_segment_xy = np.asarray([p[:2] for p in optimized_segment])
                 steps = np.diff(optimized_segment_xy, axis=0)
                 control_effort += float(np.sum(steps ** 2))
+                # Full planned path (current position -> goal), per planning call, not accumulated:
+                # successive plans overlap heavily, so summing across calls would double-count.
+                full_path_xy = np.asarray([p[:2] for p in optimized_traj_list])
+                full_path_steps = np.diff(full_path_xy, axis=0)
+                planned_path_control_efforts.append(float(np.sum(full_path_steps ** 2)))
+                nominal_full_xy = np.asarray([
+                    (p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p))[:2]
+                    for p in traj_list
+                ])
+                nominal_path_control_efforts.append(float(np.sum(np.diff(nominal_full_xy, axis=0) ** 2)))
                 # Effort over CC-active segments widened by one waypoint on each side:
                 # active step i (traj[i] -> traj[i+1]) pulls in steps i-1 and i+1,
                 # so a run of active flags [a, b] covers waypoints a-1 .. b+2.
@@ -787,12 +813,26 @@ class Model():
                     if active:
                         cc_steps[max(i - 1, 0):min(i + 2, len(steps))] = True
                 cc_segment_control_effort += float(np.sum(steps[cc_steps] ** 2))
-                deviations.extend(
-                    np.linalg.norm(optimized_segment_xy - nominal_segment_xy, axis=1).tolist()
-                )
+                plan_deviations = np.linalg.norm(optimized_segment_xy - nominal_segment_xy, axis=1)
+                deviations.extend(plan_deviations.tolist())
                 paths_planned += 1
+                cc_active_per_plan.append(bool(any(cc_active_flags[:traj_ind])))
+                cc_active_full_path_per_plan.append(bool(any(cc_active_flags)))
                 if any(cc_active_flags[:traj_ind]):  # flag i covers the step traj[i] -> traj[i+1]
                     paths_cc_triggered += 1
+                    nominal_full = np.asarray([
+                        p.detach().cpu().numpy() if torch.is_tensor(p) else np.asarray(p)
+                        for p in traj_list
+                    ])
+                    cc_modified_paths.append({
+                        "epoch": int(self.epoch),
+                        "traj_ind": int(traj_ind),
+                        "nominal": nominal_full,
+                        "optimized": np.asarray(optimized_traj_list),
+                        "cc_active_flags": np.asarray(cc_active_flags, dtype=bool),
+                        "max_deviation": float(np.max(plan_deviations)),
+                        "mean_deviation": float(np.mean(plan_deviations)),
+                    })
                 # === END CC ABLATION ADDITION ===
 
                 # print("*"*10)
@@ -828,22 +868,23 @@ class Model():
 
                 if collision:
                     print(f"⚠️ Collision detected in executed trajectory at indices: {idxs}")
-                    save_path = os.path.join(self.folder, f"collision_traj_step_{self.frame_idx}.npy")
-                    np.save(save_path, np.array(self.trajectory))
-                    if self.enable_plot:
-                        self.plot(
-                            self.initial_view,
-                            self.fixed_goal,
-                            self.epoch,
-                            total_diff.item(),
-                            self.alpha,
-                            cur_data[:,:6].clone().cpu().numpy(),
-                            None,
-                            traj_list,
-                            surface_points,
-                            final=True,
-                            collision=True
-                        )
+                    if self.folder is not None:
+                        save_path = os.path.join(self.folder, f"collision_traj_step_{self.frame_idx}.npy")
+                        np.save(save_path, np.array(self.trajectory))
+                        if self.enable_plot:
+                            self.plot(
+                                self.initial_view,
+                                self.fixed_goal,
+                                self.epoch,
+                                total_diff.item(),
+                                self.alpha,
+                                cur_data[:,:6].clone().cpu().numpy(),
+                                None,
+                                traj_list,
+                                surface_points,
+                                final=True,
+                                collision=True
+                            )
                     return {
                         "length": None,
                         "collision": True,
@@ -851,9 +892,14 @@ class Model():
                         "control_effort": control_effort,
                         "traversed_control_effort": traversed_control_effort(),
                         "cc_segment_control_effort": cc_segment_control_effort,
+                        "planned_path_control_efforts": planned_path_control_efforts,
+                        "nominal_path_control_efforts": nominal_path_control_efforts,
+                        "cc_active_per_plan": cc_active_per_plan,
+                        "cc_active_full_path_per_plan": cc_active_full_path_per_plan,
                         "deviations": deviations,
                         "paths_planned": paths_planned,
                         "paths_cc_triggered": paths_cc_triggered,
+                        "cc_modified_paths": cc_modified_paths,
                     }
 
                 #? ******************SAVINGS start*******************
@@ -936,9 +982,14 @@ class Model():
             "control_effort": control_effort,
             "traversed_control_effort": traversed_control_effort(),
             "cc_segment_control_effort": cc_segment_control_effort,
+            "planned_path_control_efforts": planned_path_control_efforts,
+            "nominal_path_control_efforts": nominal_path_control_efforts,
+            "cc_active_per_plan": cc_active_per_plan,
+            "cc_active_full_path_per_plan": cc_active_full_path_per_plan,
             "deviations": deviations,
             "paths_planned": paths_planned,
             "paths_cc_triggered": paths_cc_triggered,
+            "cc_modified_paths": cc_modified_paths,
         }
     def train_core(self, epoch, frame_data, is_one_frame=True):
         beta = 1.0
@@ -1619,26 +1670,26 @@ class Model():
 
         dist = np.linalg.norm(current_pos[:2] - goal[:2])
         return dist < tol
-    # def is_stuck(self, threshold=0.005):
-    #     if len(self.prev_positions) < 2:
-    #         return False
-
-    #     start = self.prev_positions[-2]
-    #     end   = self.prev_positions[-1]
-
-    #     movement = np.linalg.norm(end[:2] - start[:2])
-
-    #     return movement < threshold
-    def is_stuck(self, threshold=0.008):
-        if len(self.prev_positions) < 3:
+    def is_stuck(self, threshold=0.005):
+        if len(self.prev_positions) < 2:
             return False
 
-        start = self.prev_positions[0]
+        start = self.prev_positions[-2]
         end   = self.prev_positions[-1]
 
         movement = np.linalg.norm(end[:2] - start[:2])
 
         return movement < threshold
+    # def is_stuck(self, threshold=0.008):
+    #     if len(self.prev_positions) < 3:
+    #         return False
+
+    #     start = self.prev_positions[0]
+    #     end   = self.prev_positions[-1]
+
+    #     movement = np.linalg.norm(end[:2] - start[:2])
+
+    #     return movement < threshold
     def compute_path_length(self, path):
         if path is None or len(path) < 2:
             return 0.0

@@ -36,7 +36,7 @@ def main():
     if mode in [EXPLORATION]:
         from igibson.render.mesh_renderer.mesh_renderer_cpu import MeshRenderer
         meshpath = "data/mesh_superior_normalized.obj"
-        meshpath = "data/mesh_denmark_normalized.obj"
+        # meshpath = "data/mesh_denmark_normalized.obj"
         # meshpath = "data/mesh2.obj"
         renderer = MeshRenderer(width=1200, height=680)
         renderer.load_object(meshpath, scale=np.array([1, 1, 1]) * scale_factor)
@@ -79,6 +79,7 @@ def main():
     all_segment_nominal_efforts = []
     all_dev_means = []             # nominal-vs-optimized deviation per call
     all_dev_maxes = []
+    all_nominal_path_lengths = []  # nominal planned path xy length per call
     traversed_efforts = []         # executed trajectory control effort per run
 
     for i in range(num_runs):
@@ -97,6 +98,7 @@ def main():
         all_segment_nominal_efforts.extend(result["segment_nominal_efforts"])
         all_dev_means.extend(result["deviation_means"])
         all_dev_maxes.extend(result["deviation_maxes"])
+        all_nominal_path_lengths.extend(result["nominal_path_lengths"])
         if result["traversed_effort"] is not None:
             traversed_efforts.append(result["traversed_effort"])
         if result["collision"]:
@@ -149,7 +151,39 @@ def main():
         valid = nominal_arr > 0
         added_pcts = 100.0 * (optimized_arr[valid] - nominal_arr[valid]) / nominal_arr[valid]
         print(f"Added control effort vs nominal: mean {np.mean(added_pcts):+.2f}% "
-              f"(std {np.std(added_pcts):.2f}) (per planning call)")
+              f"(std {np.std(added_pcts):.2f}) (per planning call, all plans)")
+        # Same per-plan percentage, restricted to plans the optimizer actually
+        # modified. all_modified is the full-path flag (wp_flags.any()), indexed
+        # per planning call alongside the efforts, so mask and metric share scope.
+        cc_active = np.array(all_modified, dtype=bool)
+        if len(cc_active) == len(nominal_arr):
+            valid_cc = valid & cc_active
+            if valid_cc.any():
+                cc_pcts = 100.0 * (optimized_arr[valid_cc] - nominal_arr[valid_cc]) / nominal_arr[valid_cc]
+                print(f"Added control effort vs nominal: mean {np.mean(cc_pcts):+.2f}% "
+                      f"(std {np.std(cc_pcts):.2f}) (per planning call, "
+                      f"CC-active plans only, n={int(valid_cc.sum())})")
+        else:
+            print("  (CC-active subset skipped: modified-flag count != effort count)")
+        # Added effort normalized by nominal path length. Effort scales with
+        # scale_factor^2, length with scale_factor, so the ratio scales with
+        # scale_factor -> units m^2/m = m.
+        length_arr = np.array(all_nominal_path_lengths)
+        if len(length_arr) == len(nominal_arr):
+            valid_len = length_arr > 0
+            norm_added = (optimized_arr[valid_len] - nominal_arr[valid_len]) / length_arr[valid_len] * scale_factor
+            if valid_len.any():
+                print(f"Added effort / path length:      mean {np.mean(norm_added):+.6f} m^2/m "
+                      f"(std {np.std(norm_added):.6f}) (per planning call, all plans, n={int(valid_len.sum())})")
+            if len(cc_active) == len(nominal_arr):
+                valid_len_cc = valid_len & cc_active
+                if valid_len_cc.any():
+                    norm_added_cc = (optimized_arr[valid_len_cc] - nominal_arr[valid_len_cc]) / length_arr[valid_len_cc] * scale_factor
+                    print(f"Added effort / path length:      mean {np.mean(norm_added_cc):+.6f} m^2/m "
+                          f"(std {np.std(norm_added_cc):.6f}) (per planning call, "
+                          f"CC-active plans only, n={int(valid_len_cc.sum())})")
+        else:
+            print("  (Normalized added effort skipped: path-length count != effort count)")
     if len(all_segment_efforts) > 0:
         print(f"Optimized-segment control effort: optimized {np.mean(all_segment_efforts) * effort_scale:.6f} m^2 "
               f"(std {np.std(all_segment_efforts) * effort_scale:.6f}), "

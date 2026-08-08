@@ -331,7 +331,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0116  #0.1
+        self.maximum = 0.0126  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -348,7 +348,7 @@ class Model():
 
         # self.fixed_goal = torch.tensor([ 0.05,  -0.076, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0] , dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0] , dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.15,  0.0396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.2816,   0.1116,  0.0], dtype=torch.float32)
@@ -397,7 +397,7 @@ class Model():
 
         ######################    Superior      ############################
         # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
@@ -575,7 +575,7 @@ class Model():
 
         ################## Superior ##################
         # initial_view = Tensor([-0.0797515, -0.034389, 0.0])
-        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        # initial_view = Tensor([-0.08850, 0.0915668, 0.0])
         # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
         # initial_view = Tensor([0.01909, -0.10586, 0.0])
         # initial_view = Tensor([0.02132, -0.102299, 0.0])
@@ -640,6 +640,7 @@ class Model():
         cc_segment_control_effort = 0.0
         planned_path_control_efforts = []  # one entry per planning call: effort of the full planned path (start -> goal)
         nominal_path_control_efforts = []  # same per-call indexing, but for the nominal (pre-CC) planned path
+        nominal_path_lengths = []          # same per-call indexing: xy arc length of the nominal planned path
         cc_active_per_plan = []            # same per-call indexing: whether CC modified the executed segment
         cc_active_full_path_per_plan = []  # same per-call indexing: whether CC modified any step of the full planned path
         deviations = []
@@ -748,6 +749,7 @@ class Model():
                             "cc_segment_control_effort": cc_segment_control_effort,
                             "planned_path_control_efforts": planned_path_control_efforts,
                             "nominal_path_control_efforts": nominal_path_control_efforts,
+                            "nominal_path_lengths": nominal_path_lengths,
                             "cc_active_per_plan": cc_active_per_plan,
                             "cc_active_full_path_per_plan": cc_active_full_path_per_plan,
                             "deviations": deviations,
@@ -804,6 +806,7 @@ class Model():
                     for p in traj_list
                 ])
                 nominal_path_control_efforts.append(float(np.sum(np.diff(nominal_full_xy, axis=0) ** 2)))
+                nominal_path_lengths.append(float(np.sum(np.linalg.norm(np.diff(nominal_full_xy, axis=0), axis=1))))
                 # Effort over CC-active segments widened by one waypoint on each side:
                 # active step i (traj[i] -> traj[i+1]) pulls in steps i-1 and i+1,
                 # so a run of active flags [a, b] covers waypoints a-1 .. b+2.
@@ -894,6 +897,7 @@ class Model():
                         "cc_segment_control_effort": cc_segment_control_effort,
                         "planned_path_control_efforts": planned_path_control_efforts,
                         "nominal_path_control_efforts": nominal_path_control_efforts,
+                        "nominal_path_lengths": nominal_path_lengths,
                         "cc_active_per_plan": cc_active_per_plan,
                         "cc_active_full_path_per_plan": cc_active_full_path_per_plan,
                         "deviations": deviations,
@@ -984,6 +988,7 @@ class Model():
             "cc_segment_control_effort": cc_segment_control_effort,
             "planned_path_control_efforts": planned_path_control_efforts,
             "nominal_path_control_efforts": nominal_path_control_efforts,
+            "nominal_path_lengths": nominal_path_lengths,
             "cc_active_per_plan": cc_active_per_plan,
             "cc_active_full_path_per_plan": cc_active_full_path_per_plan,
             "deviations": deviations,

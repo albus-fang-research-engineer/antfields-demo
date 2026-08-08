@@ -36,7 +36,9 @@ def main():
     if mode in [EXPLORATION]:
         from igibson.render.mesh_renderer.mesh_renderer_cpu import MeshRenderer
         meshpath = "data/mesh_superior_normalized.obj"
-        # meshpath = "data/mesh_denmark_normalized.obj"
+        meshpath = "data/mesh_allensville_normalized.obj"
+        meshpath = "data/mesh_denmark_normalized.obj"
+        # meshpath = "data/mesh2.obj"
         # meshpath = "data/default_mesh.obj"
         renderer = MeshRenderer(width=1200, height=680)
         renderer.load_object(meshpath, scale=np.array([1, 1, 1]) * scale_factor)
@@ -73,6 +75,7 @@ def main():
     cc_segment_control_efforts = []
     all_planned_path_efforts = []
     all_nominal_path_efforts = []
+    all_nominal_path_lengths = []
     all_cc_active_flags = []
     all_cc_active_full_flags = []
     all_deviations = []
@@ -92,6 +95,7 @@ def main():
         cc_segment_control_efforts.append(result["cc_segment_control_effort"])
         all_planned_path_efforts.extend(result["planned_path_control_efforts"])
         all_nominal_path_efforts.extend(result["nominal_path_control_efforts"])
+        all_nominal_path_lengths.extend(result["nominal_path_lengths"])
         all_cc_active_flags.extend(result["cc_active_per_plan"])
         all_cc_active_full_flags.extend(result["cc_active_full_path_per_plan"])
         all_deviations.extend(result["deviations"])
@@ -131,6 +135,15 @@ def main():
             run_valid = run_nominal > 0
             print(f"CC added effort vs nominal (mean per plan, this run): {np.mean(run_added) * scale_factor**2:.4f} m^2"
                   + (f" ({np.mean(100.0 * run_added[run_valid] / run_nominal[run_valid]):+.2f}%)" if run_valid.any() else ""))
+            run_lengths = np.array(result["nominal_path_lengths"])
+            run_valid_len = run_lengths > 0
+            if run_valid_len.any():
+                run_added_per_m = run_added[run_valid_len] / run_lengths[run_valid_len]
+                print(f"CC added effort / nominal path length (mean per plan, this run): {np.mean(run_added_per_m) * scale_factor:.4f} m^2/m")
+                run_cc = np.array(result["cc_active_per_plan"], dtype=bool)
+                if (run_valid_len & run_cc).any():
+                    run_added_per_m_cc = run_added[run_valid_len & run_cc] / run_lengths[run_valid_len & run_cc]
+                    print(f"CC added effort / nominal path length (CC-active plans only, this run, n={int((run_valid_len & run_cc).sum())}): {np.mean(run_added_per_m_cc) * scale_factor:.4f} m^2/m")
         if result["collision"]:
             collisions += 1
             print("Run ended with collision")
@@ -192,6 +205,21 @@ def main():
                   f"{np.mean(added_cc) * scale_factor**2:+.4f} m^2 ({np.mean(pct_cc):+.2f}%)")
             print(f"Std added effort  (CC-active plans only): "
                   f"{np.std(added_cc) * scale_factor**2:.4f} m^2 ({np.std(pct_cc):.2f}%)")
+        nominal_lengths = np.array(all_nominal_path_lengths)
+        if len(nominal_lengths) == len(added_efforts):
+            valid_len = nominal_lengths > 0
+            if valid_len.any():
+                added_per_m = added_efforts[valid_len] / nominal_lengths[valid_len]
+                print("--- CC added control effort normalized by nominal path length (per planning call) ---")
+                print(f"Mean added effort per meter (all plans):    {np.mean(added_per_m) * scale_factor:+.4f} m^2/m")
+                print(f"Std added effort per meter  (all plans):    {np.std(added_per_m) * scale_factor:.4f} m^2/m")
+                valid_len_cc = valid_len & cc_active_flags
+                if valid_len_cc.any():
+                    added_per_m_cc = added_efforts[valid_len_cc] / nominal_lengths[valid_len_cc]
+                    print(f"Mean added effort per meter (CC-active plans only, n={int(valid_len_cc.sum())}): "
+                          f"{np.mean(added_per_m_cc) * scale_factor:+.4f} m^2/m")
+                    print(f"Std added effort per meter  (CC-active plans only): "
+                          f"{np.std(added_per_m_cc) * scale_factor:.4f} m^2/m")
     if len(deviations) > 0:
         print(f"Waypoints compared:          {len(deviations)}")
         print(f"Mean deviation from nominal: {np.mean(deviations) * scale_factor:.4f} m")

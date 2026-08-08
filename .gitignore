@@ -2,3 +2,6 @@
 *.pyc
 Experiments/
 lidar_points/
+__pycache__/
+__init.py__
+*.pt

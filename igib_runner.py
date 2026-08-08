@@ -244,7 +244,7 @@ def sample_points_from_pos(model, position, scale_factor=1):
     """
     n_rays = 6000 #5000
     dist_behind_surf = 0. #0.2
-    n_strat_samples = 22 #20
+    n_strat_samples = 20 #20
     n_surf_samples = 10 #8
     min_depth = 0.01
     max_depth = 0.25

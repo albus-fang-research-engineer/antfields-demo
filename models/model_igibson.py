@@ -429,7 +429,7 @@ class Model():
         self.frame_buffer_size = 20
         self.camera_steps = 5000//50
         self.minimum = 0.007 #0.02
-        self.maximum = 0.0166  #0.1
+        self.maximum = 0.0136  #0.1
         self.all_framedata = None
         self.all_surf_pc = []
         self.free_pc = []
@@ -445,9 +445,9 @@ class Model():
         # self.fixed_start = self.fixed_start.to(self.Params['Device'])
         # ===== Fixed experiment setup =====
         #####################    MAP1      ############################
-        self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([ 0.0516,  -0.076, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.03597647, -0.19569747, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([0.12612747, 0.205, 0.0], dtype=torch.float32)
         self.fixed_goal = torch.tensor([-0.1786,   0.12596,  0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.15,  0.0396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.2816,   0.1116,  0.0], dtype=torch.float32)
@@ -480,7 +480,7 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.15836, -0.125869, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.229774, -0.086229, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.27321, -0.0265, 0.0], dtype=torch.float32)
-        # self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
+        self.fixed_goal = torch.tensor([-0.136399, -0.1041596, 0.0], dtype=torch.float32)
 
         ######################    Denmark      ############################
         # self.fixed_goal = torch.tensor([-0.1509, 0.103031, 0.0], dtype=torch.float32)
@@ -491,11 +491,11 @@ class Model():
         # self.fixed_goal = torch.tensor([-0.266119, 0.02896, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.04500, -0.0395, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.31192, -0.0272235, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.039965, 0.028565, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.296277, 0.02713, 0.0], dtype=torch.float32)
         ######################    Superior      ############################
         # self.fixed_goal = torch.tensor([-0.129882, -0.147299, 0.0], dtype=torch.float32)
-        self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
+        # self.fixed_goal = torch.tensor([-0.1362, 0.01396, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([-0.066432, -0.057865, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.0322562, -0.148725, 0.0], dtype=torch.float32)
         # self.fixed_goal = torch.tensor([0.013853, -0.254623, 0.0], dtype=torch.float32)
@@ -619,9 +619,9 @@ class Model():
     def load_rawdata(self):
         #! load data
         ################## Map 1 ##################
-        initial_view = Tensor([-0.12, -0.046, 0])
-        initial_view = Tensor([ 0.042176,  -0.02060163, 0.0])
-        initial_view = Tensor([0.3608916,  0.171, 0.0]) #initial_view = Tensor([0.36,  0.151, 0.0])
+        # initial_view = Tensor([-0.12, -0.046, 0])
+        # initial_view = Tensor([ 0.042176,  -0.02060163, 0.0])
+        # initial_view = Tensor([0.3608916,  0.171, 0.0]) #initial_view = Tensor([0.36,  0.151, 0.0])
         initial_view = Tensor([-0.05826768, -0.00738018, 0.0])
         # initial_view = Tensor([0.07269316, -0.05, 0.0])
         # initial_view = Tensor([0.16602385, 0.0396, 0.0 ])
@@ -651,7 +651,7 @@ class Model():
         # initial_view = Tensor([-0.306212, 0.160368, 0.0])
         # initial_view = Tensor([-0.25277, 0.14011, 0.0])
         # initial_view = Tensor([-0.16236, -0.123969, 0.0])
-        # initial_view = Tensor([-0.30698, -0.29587, 0.0])
+        initial_view = Tensor([-0.30698, -0.29587, 0.0])
 
         ################## Denmark ##################
         # initial_view = Tensor([-0.03756, -0.01000, 0.0])
@@ -667,7 +667,7 @@ class Model():
 
         ################## Superior ##################
         # initial_view = Tensor([-0.0797515, -0.034389, 0.0])
-        initial_view = Tensor([-0.08850, 0.0915668, 0.0])
+        # initial_view = Tensor([-0.08850, 0.0915668, 0.0])
         # initial_view = Tensor([-0.0615467, -0.173793, 0.0])
         # initial_view = Tensor([0.01909, -0.10586, 0.0])
         # initial_view = Tensor([0.02132, -0.102299, 0.0])
@@ -2094,7 +2094,7 @@ class Model():
         traj_list = self.predict_trajectory2(
             current_location,
             goal,
-            step_size=0.005
+            step_size=0.0040
         )
 
         step_size = 0.05

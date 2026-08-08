@@ -446,16 +446,16 @@ def sample_points_and_speeds_from_pos_neural(model, position, minimum, maximum, 
     # print(bounds)
     #points, speeds, bounds = sample_points_and_speeds_from_bounds(pc, bounds, minimum=minimum, maximum=maximum, num=num)
     
-    return points[0:4500], speeds[0:4500], bounds[0:4500], obstacle_points
+    return points[0:2300], speeds[0:2300], bounds[0:2300], obstacle_points
     # return points[0:2066], speeds[0:2066], bounds[0:2066], obstacle_points
 
 def sample_points_from_pos(model, position, scale_factor=1):
     """
     configs
     """
-    n_rays = 6000 #5000
+    n_rays = 6600 #5000
     dist_behind_surf = 0. #0.2
-    n_strat_samples = 20 # 20
+    n_strat_samples = 22 # 20
     n_surf_samples = 8  #8
     min_depth = 0.01
     max_depth = 0.25
